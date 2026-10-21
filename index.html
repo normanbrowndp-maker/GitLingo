@@ -1,0 +1,88 @@
+<!doctype html> 
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GitLingo — микрообучение</title>
+  <meta name="application-name" content="GitLingo">
+  <script>
+    try {
+      const storedTheme = localStorage.getItem("mega-theme");
+      const savedTheme = storedTheme === "light" || storedTheme === "dark" ? storedTheme : null;
+      document.documentElement.dataset.theme = savedTheme || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    } catch {
+      document.documentElement.dataset.theme = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    }
+  </script>
+  <link rel="stylesheet" href="css/tokens.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/lesson.css">
+  <link rel="stylesheet" href="css/pages.css">
+  <script src="js/storage.js" defer></script>
+  <script src="js/ui.js" defer></script>
+  <script src="js/theme.js" defer></script>
+  <script src="js/nav.js" defer></script>
+</head>
+<body class="page-home">
+  <header class="site-header">
+    <a class="site-header__logo" href="index.html" data-home-link><span>Git</span><span class="site-header__accent">Lingo</span></a>
+    <nav class="site-header__nav" aria-label="Основная навигация">
+      <a href="learn.html" data-nav-link>Учиться</a>
+      <a href="pet.html" data-nav-link>Питомец</a>
+    </nav>
+    <div class="site-header__status">
+      <span class="site-header__streak" id="streak-count">🔥 0</span>
+      <button type="button" id="theme-toggle" class="theme-toggle" aria-label="Включить тёмную тему" aria-pressed="false">
+        <svg class="theme-toggle__icon theme-toggle__icon--moon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20.1 15.7A8.5 8.5 0 0 1 8.3 3.9 8.6 8.6 0 1 0 20.1 15.7Z" /></svg>
+        <svg class="theme-toggle__icon theme-toggle__icon--sun" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4" /><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42" /></svg>
+        <span class="visually-hidden">Переключить тему</span>
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero" aria-labelledby="hero-title">
+      <h1 id="hero-title">GitLingo</h1>
+      <p>Короткие уроки помогут освоить новые навыки в удобном темпе.</p>
+      <p>
+        <a class="btn btn--primary" href="learn.html" data-primary-link>Начать обучение</a>
+        <a class="btn btn--secondary" href="pet.html" data-secondary-link>Узнать о питомце</a>
+      </p>
+    </section>
+
+    <section class="home-section home-section--features" aria-labelledby="how-it-works-title">
+      <h2 id="how-it-works-title">Как это работает</h2>
+      <ul class="feature-grid">
+        <li class="feature-card">
+          <h3>Короткие уроки</h3>
+          <p>Изучай одну тему за несколько минут.</p>
+        </li>
+        <li class="feature-card">
+          <h3>Награды и серия</h3>
+          <p>Возвращайся к занятиям и отмечай каждый день обучения.</p>
+        </li>
+        <li class="feature-card">
+          <h3>Растущий питомец</h3>
+          <p>Получай опыт и открывай новые уровни питомца.</p>
+        </li>
+      </ul>
+    </section>
+
+    <section class="home-section home-section--tasks" aria-labelledby="task-types-title">
+      <h2 id="task-types-title">Типы заданий</h2>
+      <ul class="task-type-list">
+        <li><span aria-hidden="true">◉</span>Визуальный выбор</li>
+        <li><span aria-hidden="true">⌘</span>Сборка команды или кода из блоков</li>
+        <li><span aria-hidden="true">⌨</span>Горячие клавиши</li>
+        <li><span aria-hidden="true">⇄</span>Сопоставление терминов</li>
+      </ul>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>GitLingo</p>
+  </footer>
+</body>
+</html>
+

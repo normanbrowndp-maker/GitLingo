@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Урок — GitLingo</title>
+  <meta name="application-name" content="GitLingo">
+  <script>
+    try {
+      const storedTheme = localStorage.getItem("mega-theme");
+      const savedTheme = storedTheme === "light" || storedTheme === "dark" ? storedTheme : null;
+      document.documentElement.dataset.theme = savedTheme || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    } catch {
+      document.documentElement.dataset.theme = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    }
+  </script>
+  <link rel="stylesheet" href="css/tokens.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/lesson.css">
+  <link rel="stylesheet" href="css/pages.css">
+  <script src="js/storage.js" defer></script>
+  <script src="js/data/lessons.js" defer></script>
+  <script src="js/ui.js" defer></script>
+  <script src="js/theme.js" defer></script>
+  <script src="js/nav.js" defer></script>
+  <script src="js/lesson.js" defer></script>
+</head>
+<body class="page-lesson">
+  <div class="lesson__topbar">
+    <form action="learn.html">
+      <button type="submit" id="exit-btn" aria-label="Выйти из урока">×</button>
+    </form>
+    <progress id="lesson-progress" value="0" max="10" role="progressbar" aria-valuemin="0" aria-valuemax="10" aria-valuenow="0">0 из 10</progress>
+    <p class="lives">❤️ <span id="lives">5</span></p>
+  </div>
+
+  <main class="lesson__body">
+    <h1 id="task-title">Урок</h1>
+    <span class="test-badge" id="test-badge" hidden>Тест · 1/5</span>
+    <section id="task-area" data-task-type="choice" aria-label="Задание">
+      <p>Задание появится здесь.</p>
+    </section>
+
+    <section hidden data-task-template="choice" aria-label="Шаблон визуального выбора">
+      <h2>Выбери вариант</h2>
+      <button class="choice-card" type="button" data-answer="A">Вариант A</button>
+      <button class="choice-card" type="button" data-answer="B">Вариант B</button>
+    </section>
+
+    <section hidden data-task-template="builder" aria-label="Шаблон сборки ответа">
+      <h2>Собери ответ</h2>
+      <div id="answer-zone" aria-label="Зона сборки ответа"></div>
+      <div class="lesson__block-bank" aria-label="Банк блоков">
+        <button class="chip" type="button" data-block="1">Блок 1</button>
+        <button class="chip" type="button" data-block="2">Блок 2</button>
+        <button class="chip" type="button" data-block="3">Блок 3</button>
+        <button class="chip" type="button" data-block="4">Блок 4</button>
+        <button class="chip" type="button" data-block="5">Блок 5</button>
+        <button class="chip" type="button" data-block="6">Блок 6</button>
+      </div>
+    </section>
+
+    <section hidden data-task-template="hotkeys" aria-label="Шаблон задания на горячие клавиши">
+      <h2>Выбери сочетание клавиш</h2>
+      <p>Какое сочетание копирует выделенный текст?</p>
+      <button type="button" data-answer="Ctrl+C"><kbd>Ctrl</kbd> + <kbd>C</kbd></button>
+      <button type="button" data-answer="Ctrl+V"><kbd>Ctrl</kbd> + <kbd>V</kbd></button>
+      <button type="button" data-answer="Ctrl+Z"><kbd>Ctrl</kbd> + <kbd>Z</kbd></button>
+      <button type="button" data-answer="Ctrl+S"><kbd>Ctrl</kbd> + <kbd>S</kbd></button>
+    </section>
+
+    <section hidden data-task-template="matching" aria-label="Шаблон сопоставления терминов">
+      <h2>Сопоставь термины и определения</h2>
+      <div class="lesson__matching-column" aria-label="Термины">
+        <button type="button" data-match="terminal">Терминал</button>
+        <button type="button" data-match="file">Файл</button>
+        <button type="button" data-match="folder">Папка</button>
+        <button type="button" data-match="command">Команда</button>
+      </div>
+      <div class="lesson__matching-column" aria-label="Определения">
+        <button type="button" data-match="definition-1">Набор инструкций для компьютера</button>
+        <button type="button" data-match="definition-2">Место для хранения файлов</button>
+        <button type="button" data-match="definition-3">Программа для ввода команд</button>
+        <button type="button" data-match="definition-4">Именованный набор данных</button>
+      </div>
+    </section>
+  </main>
+
+  <footer class="lesson__footer">
+    <div id="feedback" hidden role="status" aria-live="polite">
+      <p class="feedback--success" hidden>Верно!</p>
+      <section class="feedback--error" hidden aria-labelledby="feedback-error-title">
+        <h2 id="feedback-error-title">Пока неверно</h2>
+        <p data-error-explanation>Здесь появятся правильный ответ и объяснение.</p>
+        <p id="hint-text" data-hint hidden></p>
+        <div class="feedback__actions">
+          <button type="button" class="btn btn--danger" data-feedback-dismiss>Понятно</button>
+          <button type="button" id="hint-btn" class="btn btn--secondary">Подсказка</button>
+        </div>
+      </section>
+      <form action="results.html">
+        <button type="submit" id="continue-btn" class="btn btn--success" hidden>Продолжить</button>
+      </form>
+    </div>
+    <button type="button" id="check-btn" class="btn btn--primary" disabled>Проверить</button>
+  </footer>
+</body>
+</html>

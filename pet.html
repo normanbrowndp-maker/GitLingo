@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Питомец — GitLingo</title>
+  <meta name="application-name" content="GitLingo">
+  <script>
+    try {
+      const storedTheme = localStorage.getItem("mega-theme");
+      const savedTheme = storedTheme === "light" || storedTheme === "dark" ? storedTheme : null;
+      document.documentElement.dataset.theme = savedTheme || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    } catch {
+      document.documentElement.dataset.theme = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    }
+  </script>
+  <link rel="stylesheet" href="css/tokens.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/lesson.css">
+  <link rel="stylesheet" href="css/pages.css">
+  <script src="js/storage.js" defer></script>
+  <script src="js/ui.js" defer></script>
+  <script src="js/theme.js" defer></script>
+  <script src="js/nav.js" defer></script>
+</head>
+<body class="page-pet">
+  <header class="site-header">
+    <a class="site-header__logo" href="index.html" data-home-link><span>Git</span><span class="site-header__accent">Lingo</span></a>
+    <nav class="site-header__nav" aria-label="Основная навигация">
+      <a href="learn.html" data-nav-link>Учиться</a>
+      <a href="pet.html" data-nav-link>Питомец</a>
+    </nav>
+    <div class="site-header__status">
+      <span class="site-header__streak" id="streak-count">🔥 0</span>
+      <button type="button" id="theme-toggle" class="theme-toggle" aria-label="Включить тёмную тему" aria-pressed="false">
+        <svg class="theme-toggle__icon theme-toggle__icon--moon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20.1 15.7A8.5 8.5 0 0 1 8.3 3.9 8.6 8.6 0 1 0 20.1 15.7Z" /></svg>
+        <svg class="theme-toggle__icon theme-toggle__icon--sun" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4" /><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42" /></svg>
+        <span class="visually-hidden">Переключить тему</span>
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <section aria-labelledby="pet-title">
+      <h1 id="pet-title">Твой питомец</h1>
+      <div class="pet-current card">
+        <p class="pet-current__emoji" aria-label="Яйцо">🥚</p>
+        <h2>Яйцо</h2>
+        <progress id="pet-xp-progress" value="0" max="100">0 из 100 XP</progress>
+        <p>0 из 100 XP до следующего уровня</p>
+      </div>
+    </section>
+
+    <section aria-labelledby="pet-levels-title">
+      <h2 id="pet-levels-title">Уровни питомца</h2>
+      <ol class="pet-levels">
+        <li data-level="1">
+          <h3>Яйцо 🥚</h3>
+          <p>Требуется XP: <span>0</span></p>
+        </li>
+        <li data-level="2">
+          <h3>Акулёнок 🦈</h3>
+          <p>Требуется XP: <span>100</span></p>
+        </li>
+        <li data-level="3">
+          <h3>Акула 🦈</h3>
+          <p>Требуется XP: <span>300</span></p>
+        </li>
+        <li data-level="4">
+          <h3>Мегаладон 🦖</h3>
+          <p>Требуется XP: <span>700</span></p>
+        </li>
+      </ol>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>GitLingo</p>
+  </footer>
+</body>
+</html>
