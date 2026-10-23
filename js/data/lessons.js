@@ -15,6 +15,13 @@ window.MEGA.data = {
       id: 1,
       title: "Основы терминала",
       description: "Команды для навигации и работы в терминале.",
+      goals: ["Узнавать текущую папку и её содержимое", "Переходить между папками", "Создавать папки и пустые файлы"],
+      why: "Терминал помогает быстро ориентироваться в проекте и выполнять повторяющиеся действия. Эти команды пригодятся при работе с файлами и Git.",
+      theory: [
+        { title: "Узнай, где ты находишься", text: "pwd показывает путь к текущей папке, а ls выводит её содержимое. Эти команды доступны и в PowerShell, и в Git Bash.", code: "pwd\nls" },
+        { title: "Перейди в другую папку", text: "Команда cd меняет текущую папку. Две точки означают переход на уровень выше.", code: "cd ..\ncd .." },
+        { title: "Создай папку и файл", text: "mkdir создаёт папку, а touch notes.txt создаёт файл в Git Bash. В PowerShell для файла используй New-Item -ItemType File notes.txt. Пример ниже работает в обеих оболочках.", code: "mkdir demo\necho \"\" > notes.txt" }
+      ],
       tasks: [
         {
           type: "choice",
@@ -186,6 +193,12 @@ window.MEGA.data = {
       id: 2,
       title: "Первый коммит",
       description: "Добавь изменения в индекс и создай коммит.",
+      goals: ["Проверять состояние репозитория", "Добавлять файлы в индекс", "Создавать коммит с сообщением"],
+      why: "Коммиты сохраняют понятные этапы работы над проектом. Индекс позволяет выбрать, какие именно изменения попадут в следующий снимок.",
+      theory: [
+        { title: "Проверь изменения", text: "Перед сохранением посмотри, какие файлы изменились и готовы ли они к коммиту.", code: "git status" },
+        { title: "Подготовь и сохрани", text: "Сначала добавь файл в индекс, затем создай коммит с коротким сообщением.", code: "git add README.md\ngit commit -m \"Обновить README\"" }
+      ],
       tasks: [
         { type: "choice", question: "Как проверить, какие файлы изменились?", options: [{ id: "a", text: "Проверить состояние", code: "git status" }, { id: "b", text: "Показать список веток", code: "git branch --list" }], answer: "a", explain: "git status показывает изменения и состояние индекса.", hint: "Выбери команду для проверки состояния." },
         { type: "builder", question: "Собери команду для добавления README.md в индекс.", blocks: ["git", "README.md", "add", "commit"], answer: ["git", "add", "README.md"], explain: "git add добавляет файл в индекс.", hint: "Укажи git add и имя файла." },
@@ -200,6 +213,12 @@ window.MEGA.data = {
       id: 3,
       title: "Ветки",
       description: "Создавай отдельные ветки для изменений.",
+      goals: ["Просматривать локальные ветки", "Создавать ветку для отдельной задачи", "Переключаться между ветками и объединять их"],
+      why: "Ветки позволяют вести работу над задачами отдельно от основной версии проекта. Так изменения проще проверять и объединять.",
+      theory: [
+        { title: "Создай отдельную ветку", text: "Новая ветка отделяет работу над задачей от текущей ветки.", code: "git switch -c feature" },
+        { title: "Переключись и объедини", text: "Переключайся на существующую ветку, а после проверки объединяй её в текущую.", code: "git switch main\ngit merge feature" }
+      ],
       tasks: [
         { type: "choice", question: "Как посмотреть список локальных веток?", options: [{ id: "a", text: "Показать ветки", code: "git branch" }, { id: "b", text: "Проверить состояние", code: "git status" }], answer: "a", explain: "git branch без аргументов показывает локальные ветки.", hint: "Используй подкоманду branch." },
         { type: "builder", question: "Собери команду переключения на ветку feature.", blocks: ["feature", "git", "switch", "merge"], answer: ["git", "switch", "feature"], explain: "git switch переключает рабочую копию на существующую ветку.", hint: "После git switch напиши имя ветки." },
@@ -214,6 +233,12 @@ window.MEGA.data = {
       id: 4,
       title: "Удалённый репозиторий",
       description: "Свяжи проект с удалённым репозиторием и отправь изменения.",
+      goals: ["Просматривать адреса удалённых репозиториев", "Отправлять ветку на сервер", "Получать изменения из удалённой ветки"],
+      why: "Удалённый репозиторий помогает синхронизировать проект между компьютерами и делиться изменениями с командой.",
+      theory: [
+        { title: "Посмотри подключённые репозитории", text: "Команда покажет имена удалённых репозиториев и их адреса.", code: "git remote -v" },
+        { title: "Синхронизируй ветку", text: "Отправляй свои коммиты командой push, а новые изменения получай командой pull.", code: "git push origin main\ngit pull" }
+      ],
       tasks: [
         { type: "choice", question: "Как посмотреть настроенные удалённые репозитории?", options: [{ id: "a", text: "Посмотреть адреса", code: "git remote -v" }, { id: "b", text: "Посмотреть коммиты", code: "git log" }], answer: "a", explain: "git remote -v показывает имена и адреса удалённых репозиториев.", hint: "Для подробного списка используется -v." },
         { type: "builder", question: "Собери команду отправки ветки main на origin.", blocks: ["origin", "git", "main", "push", "pull"], answer: ["git", "push", "origin", "main"], explain: "git push отправляет коммиты выбранной ветки в удалённый репозиторий.", hint: "Сначала git push, затем имя remote и ветки." },
@@ -228,6 +253,12 @@ window.MEGA.data = {
       id: 5,
       title: "Pull request и работа в команде",
       description: "Подготовь ветку для совместной проверки изменений.",
+      goals: ["Подготавливать ветку к проверке", "Понимать назначение pull request", "Обсуждать изменения перед слиянием"],
+      why: "Pull request даёт команде место для проверки и обсуждения изменений до их включения в основную ветку.",
+      theory: [
+        { title: "Отправь ветку", text: "После коммитов отправь свою ветку в удалённый репозиторий, чтобы команда могла её увидеть.", code: "git push -u origin feature" },
+        { title: "Предложи изменения", text: "Создай pull request на платформе репозитория и укажи ветку, в которую нужно внести изменения." }
+      ],
       tasks: [
         { type: "choice", question: "Где обычно создают pull request для репозитория на GitHub?", options: [{ id: "a", text: "На вкладке Pull requests репозитория" }, { id: "b", text: "В настройках локального терминала" }], answer: "a", explain: "Pull request создают на странице репозитория GitHub после отправки ветки.", hint: "Ищи вкладку с названием Pull requests." },
         { type: "builder", question: "Собери команду отправки ветки feature на origin.", blocks: ["git", "push", "origin", "feature", "merge"], answer: ["git", "push", "origin", "feature"], explain: "Перед созданием PR ветку нужно отправить на удалённый репозиторий.", hint: "Укажи git push, remote origin и имя feature." },
@@ -243,6 +274,13 @@ window.MEGA.data = {
     {
       id: "b1",
       title: "Горячие клавиши Figma",
+      description: "Быстрее выбирай инструменты в редакторе макетов.",
+      goals: ["Находить команды через сочетания клавиш", "Выбирать инструменты для макета", "Быстрее переключаться между инструментами"],
+      why: "Сочетания клавиш ускоряют работу с макетами и помогают реже отвлекаться на поиск нужной команды.",
+      theory: [
+        { title: "Инструменты и клавиши", text: "В Figma отдельные клавиши быстро включают инструменты выделения, текста и рамки.", code: "V — перемещение\nT — текст\nF — рамка" },
+        { title: "Проверь активный инструмент", text: "Перед изменением объекта убедись, что выбран подходящий инструмент. Нажми клавишу инструмента, чтобы переключиться.", code: "Нажми V, чтобы выбрать инструмент перемещения" }
+      ],
       tasks: [
         { type: "hotkeys", question: "Какая клавиша включает инструмент «Рамка» в Figma?", app: "figma", options: [{ id: "a", keys: ["F"] }, { id: "b", keys: ["V"] }, { id: "c", keys: ["R"] }, { id: "d", keys: ["T"] }], answer: "a", explain: "В Figma клавиша F включает инструмент «Рамка».", hint: "Для рамки используется первая буква слова Frame." },
         { type: "choice", question: "Какая клавиша выбирает инструмент текста в Figma?", options: [{ id: "a", text: "Текст", code: "T" }, { id: "b", text: "Рамка", code: "F" }, { id: "c", text: "Прямоугольник", code: "R" }], answer: "a", explain: "Клавиша T включает инструмент текста.", hint: "Используй первую букву слова Text." },
@@ -252,6 +290,13 @@ window.MEGA.data = {
     {
       id: "b2",
       title: "Горячие клавиши VS Code",
+      description: "Используй сочетания клавиш для навигации и команд редактора.",
+      goals: ["Открывать файл по имени", "Вызывать палитру команд", "Показывать встроенный терминал"],
+      why: "Горячие клавиши помогают перемещаться по проекту и запускать команды, не отвлекаясь от редактора.",
+      theory: [
+        { title: "Быстро найди файл", text: "Открой быстрый переход и введи часть имени файла.", code: "Ctrl + P" },
+        { title: "Открой команды и терминал", text: "Палитра команд ищет действия редактора, а встроенный терминал открывается отдельным сочетанием.", code: "Ctrl + Shift + P\nCtrl + `" }
+      ],
       tasks: [
         { type: "hotkeys", question: "Как открыть палитру команд в VS Code?", app: "vscode", options: [{ id: "a", keys: ["Ctrl", "Shift", "P"] }, { id: "b", keys: ["Ctrl", "P"] }, { id: "c", keys: ["Ctrl", "B"] }, { id: "d", keys: ["Ctrl", "`"] }], answer: "a", explain: "Ctrl+Shift+P открывает палитру команд VS Code.", hint: "К сочетанию Ctrl+P добавь Shift." },
         { type: "choice", question: "Как быстро открыть файл по имени в VS Code?", options: [{ id: "a", text: "Быстрый переход к файлу", code: "Ctrl + P" }, { id: "b", text: "Палитра команд", code: "Ctrl + Shift + P" }, { id: "c", text: "Переключить боковую панель", code: "Ctrl + B" }], answer: "a", explain: "Ctrl+P открывает быстрый переход к файлу.", hint: "Нажми Ctrl и букву P." },
@@ -294,6 +339,14 @@ window.MEGA.validateBank = function () {
   }
 
   for (const lesson of window.MEGA.data.lessons) {
+    if (!Array.isArray(lesson.goals) || lesson.goals.length !== 3 || lesson.goals.some((goal) => typeof goal !== "string" || !goal.trim())) {
+      errors.push(`Урок ${lesson.id}: нужно указать 3 цели`);
+    }
+    if (typeof lesson.why !== "string" || !lesson.why.trim()) errors.push(`Урок ${lesson.id}: не указано, зачем это нужно`);
+    if (!Array.isArray(lesson.theory) || lesson.theory.length < 2 || lesson.theory.length > 4
+      || lesson.theory.some((card) => !card || typeof card.title !== "string" || !card.title.trim() || typeof card.text !== "string" || !card.text.trim())) {
+      errors.push(`Урок ${lesson.id}: теория должна содержать от 2 до 4 карточек`);
+    }
     lesson.tasks.forEach((task, index) => validateTask(task, `Урок ${lesson.id}, задание ${index + 1}`));
     lesson.test.forEach((task, index) => validateTask(task, `Урок ${lesson.id}, тест ${index + 1}`));
     // Уроки 2–5 оставлены короткими заглушками с двумя вопросами.
@@ -303,6 +356,14 @@ window.MEGA.validateBank = function () {
   }
 
   for (const bonus of window.MEGA.data.bonuses) {
+    if (!Array.isArray(bonus.goals) || bonus.goals.length !== 3 || bonus.goals.some((goal) => typeof goal !== "string" || !goal.trim())) {
+      errors.push(`Бонус ${bonus.id}: нужно указать 3 цели`);
+    }
+    if (typeof bonus.why !== "string" || !bonus.why.trim()) errors.push(`Бонус ${bonus.id}: не указано, зачем это нужно`);
+    if (!Array.isArray(bonus.theory) || bonus.theory.length < 2 || bonus.theory.length > 4
+      || bonus.theory.some((card) => !card || typeof card.title !== "string" || !card.title.trim() || typeof card.text !== "string" || !card.text.trim())) {
+      errors.push(`Бонус ${bonus.id}: теория должна содержать от 2 до 4 карточек`);
+    }
     bonus.tasks.forEach((task, index) => validateTask(task, `Бонус ${bonus.id}, задание ${index + 1}`));
   }
 

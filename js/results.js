@@ -16,9 +16,14 @@
   const title = document.querySelector("#results-title");
   const hint = document.querySelector("#results-hint");
   const nextLink = document.querySelector("#next-lesson-link");
+  const nextBonusLink = document.querySelector("#next-bonus-link");
   const retakeLink = document.querySelector("#retake-test-link");
   const retryLink = document.querySelector("#retry-lesson-link");
   const completedMessage = document.querySelector("#all-lessons-complete");
+  const nextDescription = document.querySelector("#results-next-description");
+  const goalsList = document.querySelector("#results-goals");
+  const unit = data.lessons.find((lesson) => String(lesson.id) === String(result.lessonId))
+    || data.bonuses.find((bonus) => bonus.id === String(result.lessonId));
   const test = result.test;
   const correct = result.lesson.correct + (test?.correct || 0);
   const total = result.lesson.total + (test?.total || 0);
@@ -31,6 +36,17 @@
   const isBonus = result.kind === "bonus";
   const passed = isBonus || Boolean(test && test.passed);
 
+  goalsList.replaceChildren(...(unit?.goals || []).map((goal) => {
+    const item = document.createElement("li");
+    const marker = document.createElement("span");
+    marker.setAttribute("aria-hidden", "true");
+    marker.textContent = passed ? "✓" : "○";
+    const text = document.createElement("span");
+    text.textContent = goal;
+    item.append(marker, text);
+    return item;
+  }));
+
   title.textContent = isBonus ? "Бонус пройден!" : (passed ? "Урок пройден!" : "Тест не сдан");
   document.querySelector("#stat-score").textContent = `верных ${correct} из ${total}`;
   document.querySelector("#stat-accuracy").textContent = `${accuracy}%`;
@@ -41,12 +57,14 @@
 
   if (!passed) {
     hint.hidden = false;
-    hint.textContent = "Тест пока не сдан. Повтори урок и попробуй ещё раз.";
+    hint.textContent = "Тест пока не сдан. Повтори теорию или попробуй тест ещё раз.";
+    nextDescription.textContent = "Можно пересдать тест или вернуться к карточкам теории.";
     nextLink.hidden = true;
+    nextBonusLink.hidden = true;
     retakeLink.hidden = false;
     retryLink.hidden = false;
     retakeLink.href = `lesson.html?id=${result.lessonId}&mode=test`;
-    retryLink.href = `lesson.html?id=${result.lessonId}`;
+    retryLink.href = `lesson.html?id=${result.lessonId}&mode=theory`;
     return;
   }
 
@@ -54,6 +72,17 @@
   retryLink.hidden = true;
   if (isBonus) {
     nextLink.hidden = true;
+    const bonusIndex = data.bonuses.findIndex((bonus) => bonus.id === String(result.lessonId));
+    const nextBonus = data.bonuses[bonusIndex + 1];
+    if (nextBonus) {
+      nextBonusLink.hidden = false;
+      nextBonusLink.href = `lesson.html?id=${nextBonus.id}`;
+      nextBonusLink.textContent = nextBonus.title;
+      nextDescription.textContent = "Продолжай с другим бонусным уроком или вернись к карте.";
+    } else {
+      nextBonusLink.hidden = true;
+      nextDescription.textContent = "Бонус пройден. Можно вернуться к карте уроков.";
+    }
     return;
   }
 
@@ -61,8 +90,14 @@
   if (nextLesson) {
     nextLink.hidden = false;
     nextLink.href = `lesson.html?id=${nextLesson.id}`;
+    nextDescription.textContent = `Дальше: ${nextLesson.title}. Урок уже открыт на карте.`;
+    nextBonusLink.hidden = true;
   } else {
     nextLink.hidden = true;
+    nextBonusLink.hidden = false;
+    nextBonusLink.href = `lesson.html?id=${data.bonuses[0].id}`;
+    nextBonusLink.textContent = data.bonuses[0].title;
+    nextDescription.textContent = "Основной курс завершён. Можно перейти к дополнительным темам.";
     completedMessage.hidden = false;
   }
 })();

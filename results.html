@@ -72,10 +72,21 @@
       <p id="results-streak">🔥 0 дней</p>
     </section>
 
+    <section aria-labelledby="results-goals-title" id="results-goals-section">
+      <h2 id="results-goals-title">Что изучено</h2>
+      <ul id="results-goals" class="results-goals"></ul>
+    </section>
+
+    <section aria-labelledby="what-next-title" id="what-next-section">
+      <h2 id="what-next-title">Что дальше</h2>
+      <p id="results-next-description"></p>
+    </section>
+
     <nav aria-label="Действия после урока">
       <a class="btn btn--primary" href="lesson.html?id=2" id="next-lesson-link">Следующий урок</a>
+      <a class="btn btn--primary" href="lesson.html?id=b1" id="next-bonus-link" hidden>Перейти к бонусу</a>
       <a class="btn btn--secondary" href="lesson.html?id=1&amp;mode=test" id="retake-test-link" hidden>Пересдать тест</a>
-      <a class="btn btn--secondary" href="lesson.html?id=1" id="retry-lesson-link" hidden>Повторить урок</a>
+      <a class="btn btn--secondary" href="lesson.html?id=1&amp;mode=theory" id="retry-lesson-link" hidden>Повторить теорию</a>
       <a class="btn btn--secondary" href="learn.html" id="learn-map-link">К карте уроков</a>
       <p id="all-lessons-complete" hidden>Ты прошёл все уроки!</p>
     </nav>

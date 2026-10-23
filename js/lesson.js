@@ -3,6 +3,7 @@
   const search = new URLSearchParams(window.location.search);
   const requestedId = search.get("id");
   const requestedMode = search.get("mode");
+  const requestedTheory = requestedMode === "theory";
   const unit = data.lessons.find((lesson) => String(lesson.id) === requestedId)
     || data.bonuses.find((bonus) => bonus.id === requestedId);
 
@@ -21,6 +22,15 @@
   let isTest = !isBonus && requestedMode === "test";
   const lessonId = unit.id;
   const sourceTasks = isBonus ? unit.tasks : (isTest ? unit.test : unit.tasks);
+  const profileLevel = state.get().profile.level;
+  const introScreen = document.querySelector("#lesson-intro");
+  const theoryScreen = document.querySelector("#lesson-theory");
+  const taskGuidance = document.querySelector("#task-guidance");
+  const lessonFooter = document.querySelector(".lesson__footer");
+  const openTheoryButton = document.querySelector("#open-theory-btn");
+  const lessonSteps = [...document.querySelectorAll("#lesson-steps [data-step]")];
+  const lessonName = isBonus ? unit.title : `Урок ${unit.id}`;
+  document.documentElement.style.setProperty("--lesson-accent", unit.accent || "var(--brand)");
   const taskTitle = document.querySelector("#task-title");
   const taskArea = document.querySelector("#task-area");
   const progress = document.querySelector("#lesson-progress");
@@ -38,6 +48,9 @@
   const testBadge = document.querySelector("#test-badge");
   const templates = [...document.querySelectorAll("[data-task-template]")];
   const praise = ["Отлично!", "Верно!", "Так держать!"];
+  let screen = isTest ? "test" : "intro";
+  let theoryIndex = 0;
+  let theoryReturnsToIntro = false;
 
   let queue = [];
   let currentTask = null;
@@ -61,13 +74,111 @@
   let startedAt = Date.now();
   let testIndex = 0;
 
-  taskTitle.textContent = isTest ? `Мини-тест: ${unit.title}` : unit.title;
-  testBadge.hidden = !isTest;
-  livesContainer.hidden = isTest;
-  progress.max = sourceTasks.length;
-  progress.value = 0;
-  progress.setAttribute("aria-valuemax", String(sourceTasks.length));
-  progress.setAttribute("aria-valuenow", "0");
+  function setScreen(nextScreen) {
+    screen = nextScreen;
+    introScreen.hidden = screen !== "intro";
+    theoryScreen.hidden = screen !== "theory";
+    taskTitle.hidden = screen !== "tasks" && screen !== "test";
+    taskArea.hidden = screen !== "tasks" && screen !== "test";
+    taskGuidance.hidden = screen !== "tasks";
+    lessonFooter.hidden = screen !== "tasks" && screen !== "test";
+    progress.hidden = screen !== "tasks" && screen !== "test";
+    testBadge.hidden = screen !== "test";
+    livesContainer.hidden = screen !== "tasks";
+    const labels = { intro: "Введение", theory: "Теория", tasks: "Задания", test: "Тест" };
+    document.querySelector("#lesson-breadcrumb").textContent = `${lessonName} · ${labels[screen]}`;
+    for (const step of lessonSteps) {
+      const active = step.dataset.step === screen;
+      step.classList.toggle("is-active", active);
+      if (active) step.setAttribute("aria-current", "step");
+      else step.removeAttribute("aria-current");
+      step.hidden = isBonus && step.dataset.step === "test";
+    }
+    if (screen === "test") taskTitle.textContent = `Мини-тест: ${unit.title}`;
+    else if (screen === "tasks") taskTitle.textContent = unit.title;
+  }
+
+  function renderIntroduction() {
+    document.querySelector("#lesson-intro-title").textContent = unit.title;
+    document.querySelector("#lesson-description").textContent = unit.description || "";
+    document.querySelector("#lesson-why").textContent = unit.why || "";
+    const goals = document.querySelector("#lesson-goals");
+    goals.replaceChildren(...unit.goals.map((goal) => {
+      const item = document.createElement("li");
+      item.textContent = goal;
+      return item;
+    }));
+    document.querySelector("#skip-theory-btn").hidden = profileLevel !== "Немного";
+    openTheoryButton.hidden = profileLevel !== "Уверенно";
+  }
+
+  function renderTheoryCard() {
+    const card = unit.theory[theoryIndex];
+    const container = document.querySelector("#theory-card");
+    const heading = document.createElement("h2");
+    heading.textContent = card.title;
+    const text = document.createElement("p");
+    text.textContent = card.text;
+    const parts = [heading, text];
+    if (card.code) {
+      const pre = document.createElement("pre");
+      const code = document.createElement("code");
+      code.textContent = card.code;
+      pre.append(code);
+      const copy = document.createElement("button");
+      copy.type = "button";
+      copy.className = "btn btn--secondary theory-copy";
+      copy.textContent = "Копировать";
+      copy.addEventListener("click", async () => {
+        try {
+          await navigator.clipboard.writeText(card.code);
+        } catch {
+          copy.hidden = true;
+        }
+      });
+      parts.push(pre, copy);
+    }
+    container.replaceChildren(...parts);
+    const dots = document.querySelector("#theory-dots");
+    dots.replaceChildren(...unit.theory.map((theoryCard, index) => {
+      const item = document.createElement("li");
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = String(index + 1);
+      button.setAttribute("aria-label", `Карточка ${index + 1}: ${theoryCard.title}`);
+      if (index === theoryIndex) button.setAttribute("aria-current", "step");
+      button.addEventListener("click", () => {
+        theoryIndex = index;
+        renderTheoryCard();
+      });
+      item.append(button);
+      return item;
+    }));
+    document.querySelector("#theory-back").disabled = theoryIndex === 0;
+    document.querySelector("#theory-next").textContent = theoryIndex === unit.theory.length - 1
+      ? (theoryReturnsToIntro ? "К введению" : "К заданиям")
+      : "Далее";
+  }
+
+  function showTheory(returnToIntro = false) {
+    theoryReturnsToIntro = returnToIntro;
+    theoryIndex = 0;
+    renderTheoryCard();
+    setScreen("theory");
+  }
+
+  function startTasks() {
+    isTest = false;
+    history.replaceState(null, "", `lesson.html?id=${lessonId}`);
+    const taskCount = unit.tasks.length;
+    const lastTwo = taskCount % 100;
+    const lastOne = taskCount % 10;
+    const taskWord = lastTwo >= 11 && lastTwo <= 14 ? "заданий"
+      : (lastOne === 1 ? "задание" : (lastOne >= 2 && lastOne <= 4 ? "задания" : "заданий"));
+    taskGuidance.textContent = `Сейчас будет ${taskCount} ${taskWord}, ошибки не страшны, за неверный ответ теряется жизнь.`;
+    setScreen("tasks");
+    resetSession(sourceTasks, false);
+  }
 
   function setProgress(value) {
     progress.value = value;
@@ -439,6 +550,7 @@
     livesContainer.hidden = testMode;
     livesContainer.classList.remove("lives--empty", "lives--hit");
     testBadge.hidden = !testMode;
+    setScreen(testMode ? "test" : "tasks");
     progress.max = tasks.length;
     progress.value = 0;
     progress.setAttribute("aria-valuemax", String(tasks.length));
@@ -454,15 +566,16 @@
   }
 
   function startLesson() {
-    isTest = false;
-    history.replaceState(null, "", `lesson.html?id=${lessonId}`);
-    resetSession(sourceTasks, false);
+    startTasks();
   }
 
   function beginTest() {
     const tests = unit.test.slice(0, data.config.TEST_LENGTH);
     const questionCount = tests.length;
-    ui.modal("Урок пройден!", `Теперь мини-тест из ${questionCount} вопросов.`, [
+    const transitionText = screen === "intro"
+      ? `Проверь свои знания в мини-тесте из ${questionCount} вопросов.`
+      : `В уроке верно с первой попытки: ${firstTryCorrect} из ${unit.tasks.length}. Теперь мини-тест из ${questionCount} вопросов.`;
+    ui.modal("Переходим к тесту", transitionText, [
       { label: "Начать тест", value: "start", className: "btn btn--primary" }
     ]).then((choice) => {
       if (choice !== "start") return;
@@ -470,6 +583,8 @@
       resultLesson = { correct: firstTryCorrect, total: unit.tasks.length, xp: earnedXp };
       isTest = true;
       history.replaceState(null, "", `lesson.html?id=${lessonId}&mode=test`);
+      taskGuidance.hidden = true;
+      setScreen("test");
       resetSession(tests, true, true);
     });
   }
@@ -532,6 +647,44 @@
     window.location.href = "results.html";
   }
 
+  function requestExit() {
+    ui.modal("Выйти?", "Прогресс этого прохождения потеряется.", [
+      { label: "Остаться", value: "stay", className: "btn btn--secondary" },
+      { label: "Выйти", value: "exit", className: "btn btn--danger" }
+    ]).then((choice) => {
+      if (choice === "exit") window.location.href = "learn.html";
+    });
+  }
+
+  document.querySelector("#start-lesson-btn").addEventListener("click", () => {
+    if (profileLevel === "Уверенно") beginTest();
+    else showTheory();
+  });
+  openTheoryButton.addEventListener("click", () => showTheory(true));
+  document.querySelector("#skip-theory-btn").addEventListener("click", startTasks);
+  document.querySelector("#theory-back").addEventListener("click", () => {
+    if (theoryIndex === 0) {
+      theoryReturnsToIntro = false;
+      setScreen("intro");
+      return;
+    }
+    theoryIndex -= 1;
+    renderTheoryCard();
+  });
+  document.querySelector("#theory-next").addEventListener("click", () => {
+    if (theoryIndex === unit.theory.length - 1) {
+      if (theoryReturnsToIntro) {
+        theoryReturnsToIntro = false;
+        setScreen("intro");
+        return;
+      }
+      startTasks();
+      return;
+    }
+    theoryIndex += 1;
+    renderTheoryCard();
+  });
+
   checkButton.addEventListener("click", checkAnswer);
   continueButton.addEventListener("click", (event) => {
     event.preventDefault();
@@ -548,22 +701,36 @@
   document.querySelector(".lesson__block-bank").closest("[data-task-template]").addEventListener("click", handleBuilderClick);
   document.querySelector("#exit-btn").addEventListener("click", (event) => {
     event.preventDefault();
-    ui.modal("Выйти?", "Прогресс этого прохождения потеряется.", [
-      { label: "Остаться", value: "stay", className: "btn btn--secondary" },
-      { label: "Выйти", value: "exit", className: "btn btn--danger" }
-    ]).then((choice) => {
-      if (choice === "exit") window.location.href = "learn.html";
-    });
+    requestExit();
   });
 
   document.addEventListener("keydown", (event) => {
     if (document.querySelector("#modal[open]")) return;
 
+    if (event.key === "Escape") {
+      event.preventDefault();
+      requestExit();
+      return;
+    }
+
+    if (screen === "theory" && event.key === "ArrowLeft") {
+      event.preventDefault();
+      document.querySelector("#theory-back").click();
+      return;
+    }
+    if (screen === "theory" && event.key === "ArrowRight") {
+      event.preventDefault();
+      document.querySelector("#theory-next").click();
+      return;
+    }
+
     if (event.key === "Enter") {
       const active = document.activeElement;
       if (!active.matches("button, a, input, textarea, select")) {
         event.preventDefault();
-        if (!feedback.hidden && !continueButton.hidden) continueButton.click();
+        if (screen === "intro") document.querySelector("#start-lesson-btn").click();
+        else if (screen === "theory") document.querySelector("#theory-next").click();
+        else if (!feedback.hidden && !continueButton.hidden) continueButton.click();
         else if (!checkButton.hidden && !checkButton.disabled) checkButton.click();
       }
     }
@@ -578,7 +745,11 @@
     const tests = unit.test.slice(0, data.config.TEST_LENGTH);
     resultLesson = { correct: 0, total: 0, xp: 0 };
     resetSession(tests, true);
+  } else if (requestedTheory) {
+    renderIntroduction();
+    showTheory();
   } else {
-    resetSession(sourceTasks, false);
+    renderIntroduction();
+    setScreen("intro");
   }
 })();

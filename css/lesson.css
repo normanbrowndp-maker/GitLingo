@@ -53,6 +53,164 @@
   overscroll-behavior: contain;
 }
 
+.lesson-progress-nav {
+  display: grid;
+  gap: 0.6rem;
+}
+
+#lesson-breadcrumb {
+  color: var(--lesson-accent, var(--brand));
+  font-weight: 800;
+}
+
+.lesson-steps {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.4rem;
+}
+
+.lesson-steps li {
+  padding: 0.45rem 0.25rem;
+  border-bottom: 3px solid var(--border);
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-align: center;
+}
+
+.lesson-steps li.is-active {
+  border-color: var(--lesson-accent, var(--brand));
+  color: var(--lesson-accent, var(--brand));
+}
+
+.lesson-screen {
+  display: grid;
+  align-content: start;
+  gap: 1.25rem;
+}
+
+.lesson-screen > h1 {
+  font-size: clamp(1.5rem, 4vw, 2rem);
+}
+
+.lesson-screen > p,
+.lesson-why > p,
+.theory-card > p {
+  color: var(--text-muted);
+}
+
+.lesson-why,
+.lesson-screen > section[aria-labelledby="lesson-goals-title"] {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--card);
+}
+
+.lesson-why h2,
+.lesson-screen > section[aria-labelledby="lesson-goals-title"] h2 {
+  font-size: 1.15rem;
+}
+
+.lesson-goals {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.lesson-goals li {
+  position: relative;
+  padding-left: 1.6rem;
+}
+
+.lesson-goals li::before {
+  position: absolute;
+  left: 0;
+  top: 0.65rem;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--lesson-accent, var(--brand));
+  content: "";
+}
+
+.lesson-screen__actions,
+.theory-navigation {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.theory-card {
+  display: grid;
+  align-content: start;
+  gap: 1rem;
+  min-height: 230px;
+  padding: 1.25rem;
+  border: 2px solid var(--border);
+  border-top: 5px solid var(--lesson-accent, var(--brand));
+  border-radius: var(--radius-lg);
+  background: var(--card);
+  box-shadow: var(--shadow);
+}
+
+.theory-card h2 {
+  font-size: 1.35rem;
+}
+
+.theory-card pre {
+  max-width: 100%;
+  margin: 0;
+  padding: 1rem;
+  overflow-x: auto;
+  border-radius: var(--radius-md);
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-code);
+  white-space: pre-wrap;
+}
+
+.theory-card code {
+  font-family: var(--font-code);
+}
+
+.theory-copy {
+  justify-self: start;
+}
+
+.theory-dots {
+  display: flex;
+  justify-content: center;
+  gap: 0.4rem;
+  margin-inline: auto;
+}
+
+.theory-dots button {
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--card);
+  color: var(--text);
+  font-weight: 800;
+}
+
+.theory-dots button[aria-current="step"] {
+  border-color: var(--lesson-accent, var(--brand));
+  background: var(--lesson-accent, var(--brand));
+  color: var(--brand-button-text);
+}
+
+.task-guidance {
+  padding: 0.75rem 1rem;
+  border-left: 4px solid var(--lesson-accent, var(--brand));
+  background: var(--card);
+  color: var(--text-muted);
+}
+
 .lesson__body > h1 {
   font-size: clamp(1.5rem, 4vw, 2rem);
 }
@@ -274,6 +432,11 @@
 
   .lesson__footer {
     padding: 0.75rem;
+  }
+
+  .lesson-screen__actions > button,
+  .theory-navigation > button {
+    flex: 1 1 auto;
   }
 
   #feedback {

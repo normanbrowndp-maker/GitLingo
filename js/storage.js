@@ -11,6 +11,7 @@ window.MEGA = window.MEGA || {};
       xp: 0,
       streak: 0,
       lastActiveDate: null,
+      profile: { level: null },
       lessons: Object.fromEntries(lessonIds.map((id) => [String(id), {
         completed: false,
         bestAccuracy: 0,
@@ -30,6 +31,10 @@ window.MEGA = window.MEGA || {};
     state.lastActiveDate = typeof value.lastActiveDate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value.lastActiveDate)
       ? value.lastActiveDate
       : null;
+    const profileLevel = value.profile && ["Ничего", "Немного", "Уверенно"].includes(value.profile.level)
+      ? value.profile.level
+      : null;
+    state.profile = { level: profileLevel };
 
     for (const id of lessonIds) {
       const saved = value.lessons[String(id)];
@@ -102,6 +107,12 @@ window.MEGA = window.MEGA || {};
     reset() {
       state = createDefaultState();
       return saveState();
+    },
+    setProfileLevel(level) {
+      if (!["Ничего", "Немного", "Уверенно"].includes(level)) return false;
+      state.profile.level = level;
+      saveState();
+      return true;
     },
     isLessonUnlocked(id) {
       const number = Number(id);

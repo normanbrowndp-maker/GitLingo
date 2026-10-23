@@ -36,9 +36,48 @@
   </div>
 
   <main class="lesson__body">
-    <h1 id="task-title">Урок</h1>
+    <nav class="lesson-progress-nav" aria-label="Этапы урока">
+      <p id="lesson-breadcrumb">Урок · Введение</p>
+      <ol class="lesson-steps" id="lesson-steps">
+        <li data-step="intro">Введение</li>
+        <li data-step="theory">Теория</li>
+        <li data-step="tasks">Задания</li>
+        <li data-step="test">Тест</li>
+      </ol>
+    </nav>
+
+    <section id="lesson-intro" class="lesson-screen" aria-labelledby="lesson-intro-title">
+      <h1 id="lesson-intro-title">Введение</h1>
+      <p id="lesson-description"></p>
+      <section class="lesson-why" aria-labelledby="lesson-why-title">
+        <h2 id="lesson-why-title">Зачем это нужно</h2>
+        <p id="lesson-why"></p>
+      </section>
+      <section aria-labelledby="lesson-goals-title">
+        <h2 id="lesson-goals-title">Что ты изучишь</h2>
+        <ul id="lesson-goals" class="lesson-goals"></ul>
+      </section>
+      <div class="lesson-screen__actions">
+        <button type="button" id="start-lesson-btn" class="btn btn--primary">Начать</button>
+        <button type="button" id="open-theory-btn" class="btn btn--secondary" hidden>Открыть теорию</button>
+        <button type="button" id="skip-theory-btn" class="btn btn--secondary" hidden>Пропустить теорию</button>
+      </div>
+    </section>
+
+    <section id="lesson-theory" class="lesson-screen" aria-labelledby="theory-title" hidden>
+      <h1 id="theory-title">Теория</h1>
+      <div id="theory-card" class="theory-card"></div>
+      <nav class="theory-navigation" aria-label="Навигация по теории">
+        <button type="button" id="theory-back" class="btn btn--secondary">Назад</button>
+        <ol id="theory-dots" class="theory-dots" aria-label="Карточки теории"></ol>
+        <button type="button" id="theory-next" class="btn btn--primary">Далее</button>
+      </nav>
+    </section>
+
+    <h1 id="task-title" hidden>Урок</h1>
     <span class="test-badge" id="test-badge" hidden>Тест · 1/5</span>
-    <section id="task-area" data-task-type="choice" aria-label="Задание">
+    <p id="task-guidance" class="task-guidance" hidden>Сейчас будет 10 заданий, ошибки не страшны, за неверный ответ теряется жизнь.</p>
+    <section id="task-area" data-task-type="choice" aria-label="Задание" hidden>
       <p>Задание появится здесь.</p>
     </section>
 

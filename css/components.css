@@ -397,6 +397,36 @@ code {
   margin-top: 1.25rem;
 }
 
+.level-dialog {
+  position: relative;
+}
+
+.level-dialog h2 {
+  padding-right: 48px;
+}
+
+.level-dialog__choices {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.level-dialog__close {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--card);
+  color: var(--text);
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
 .toast-region {
   position: fixed;
   z-index: 30;
