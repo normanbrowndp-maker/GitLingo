@@ -59,7 +59,7 @@
 }
 
 #lesson-breadcrumb {
-  color: var(--lesson-accent, var(--brand));
+  color: var(--lesson-accent, var(--text-muted));
   font-weight: 800;
 }
 
@@ -79,8 +79,8 @@
 }
 
 .lesson-steps li.is-active {
-  border-color: var(--lesson-accent, var(--brand));
-  color: var(--lesson-accent, var(--brand));
+  border-color: var(--lesson-accent, var(--border));
+  color: var(--lesson-accent, var(--text-muted));
 }
 
 .lesson-screen {
@@ -131,7 +131,7 @@
   width: 0.5rem;
   height: 0.5rem;
   border-radius: 50%;
-  background: var(--lesson-accent, var(--brand));
+  background: var(--lesson-accent, var(--border));
   content: "";
 }
 
@@ -151,7 +151,7 @@
   min-height: 230px;
   padding: 1.25rem;
   border: 2px solid var(--border);
-  border-top: 5px solid var(--lesson-accent, var(--brand));
+  border-top: 5px solid var(--border);
   border-radius: var(--radius-lg);
   background: var(--card);
   box-shadow: var(--shadow);
@@ -199,14 +199,14 @@
 }
 
 .theory-dots button[aria-current="step"] {
-  border-color: var(--lesson-accent, var(--brand));
-  background: var(--lesson-accent, var(--brand));
-  color: var(--brand-button-text);
+  border-color: var(--lesson-accent, var(--border));
+  background: var(--lesson-accent, var(--border));
+  color: var(--accent-button-text);
 }
 
 .task-guidance {
   padding: 0.75rem 1rem;
-  border-left: 4px solid var(--lesson-accent, var(--brand));
+  border-left: 4px solid var(--border);
   background: var(--card);
   color: var(--text-muted);
 }

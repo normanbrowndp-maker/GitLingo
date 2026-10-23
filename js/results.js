@@ -40,7 +40,7 @@
     const item = document.createElement("li");
     const marker = document.createElement("span");
     marker.setAttribute("aria-hidden", "true");
-    marker.textContent = passed ? "✓" : "○";
+    marker.append(ui.icon(passed ? "check" : "close"));
     const text = document.createElement("span");
     text.textContent = goal;
     item.append(marker, text);
@@ -52,7 +52,7 @@
   document.querySelector("#stat-accuracy").textContent = `${accuracy}%`;
   document.querySelector("#stat-time").textContent = `${minutes}:${seconds}`;
   document.querySelector("#stat-xp").textContent = `+${Math.max(0, Number(result.totalXp) || 0)}`;
-  document.querySelector("#results-streak").textContent = `🔥 ${ui.streakLabel(state.get().streak)}`;
+  document.querySelector("#results-streak > span").textContent = ui.streakLabel(state.get().streak);
   ui.updateStreak();
 
   if (!passed) {

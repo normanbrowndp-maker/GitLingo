@@ -1,3 +1,21 @@
+.icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex: 0 0 auto;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.75;
+}
+
+.icon-sprite {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
 .theme-toggle {
   position: relative;
   display: grid;
@@ -64,7 +82,7 @@
 .btn--secondary {
   border-color: var(--border);
   background: var(--card);
-  color: var(--brand-ink);
+  color: var(--text);
   box-shadow: 0 4px 0 var(--border);
 }
 
@@ -151,8 +169,6 @@ button:disabled {
   border: 0;
   border-radius: var(--radius-pill);
   background: var(--border);
-  color: var(--success);
-  accent-color: var(--success);
 }
 
 #lesson-progress::-webkit-progress-bar,
@@ -164,15 +180,39 @@ button:disabled {
 #lesson-progress::-webkit-progress-value,
 #pet-xp-progress::-webkit-progress-value {
   border-radius: var(--radius-pill);
-  background: linear-gradient(to bottom, var(--progress-glint), transparent 48%), var(--success);
   transition: width 0.4s ease;
 }
 
 #lesson-progress::-moz-progress-bar,
 #pet-xp-progress::-moz-progress-bar {
   border-radius: var(--radius-pill);
-  background: linear-gradient(to bottom, var(--progress-glint), transparent 48%), var(--success);
   transition: width 0.4s ease;
+}
+
+#lesson-progress {
+  color: var(--lesson-accent, var(--success));
+  accent-color: var(--lesson-accent, var(--success));
+}
+
+#pet-xp-progress {
+  color: var(--success);
+  accent-color: var(--success);
+}
+
+#lesson-progress::-webkit-progress-value {
+  background: linear-gradient(to bottom, var(--progress-glint), transparent 48%), var(--lesson-accent, var(--success));
+}
+
+#lesson-progress::-moz-progress-bar {
+  background: linear-gradient(to bottom, var(--progress-glint), transparent 48%), var(--lesson-accent, var(--success));
+}
+
+#pet-xp-progress::-webkit-progress-value {
+  background: linear-gradient(to bottom, var(--progress-glint), transparent 48%), var(--success);
+}
+
+#pet-xp-progress::-moz-progress-bar {
+  background: linear-gradient(to bottom, var(--progress-glint), transparent 48%), var(--success);
 }
 
 .lives {
@@ -184,6 +224,11 @@ button:disabled {
   white-space: nowrap;
   font-size: 1.1rem;
   font-weight: 800;
+}
+
+.lives .icon {
+  width: 1.35rem;
+  height: 1.35rem;
 }
 
 .lives--hit,
@@ -246,8 +291,13 @@ button:disabled {
   font-weight: 800;
 }
 
-.feedback--success::before {
-  content: "\2713 ";
+.feedback--success {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.feedback--success .icon {
   color: var(--success-ink);
 }
 
@@ -270,7 +320,7 @@ button:disabled {
 }
 
 .is-selected {
-  border-color: var(--brand) !important;
+  border-color: var(--border) !important;
   background-color: var(--brand-soft) !important;
 }
 
@@ -285,16 +335,15 @@ button:disabled {
   background-color: var(--success-bg) !important;
 }
 
-.is-correct::before,
-.is-wrong::before {
-  position: absolute;
-  left: 0.85rem;
-  font-weight: 900;
+.state-icon {
+ position: absolute;
+ left: 0.85rem;
+ width: 1.25rem;
+ height: 1.25rem;
 }
 
-.is-correct::before {
-  content: "\2713";
-  color: var(--success-ink);
+.is-correct .state-icon {
+ color: var(--success-ink);
 }
 
 .is-wrong {
@@ -302,8 +351,7 @@ button:disabled {
   background-color: var(--error-bg) !important;
 }
 
-.is-wrong::before {
-  content: "\2715";
+.is-wrong .state-icon {
   color: var(--error-ink);
 }
 
@@ -318,12 +366,10 @@ button:disabled {
   opacity: 0.65;
 }
 
-.is-matched::after {
+.is-matched .state-icon {
   position: absolute;
   right: 0.75rem;
-  content: "\2713";
   color: var(--success-ink);
-  font-weight: 900;
 }
 
 kbd,

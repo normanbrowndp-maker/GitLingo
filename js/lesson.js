@@ -30,7 +30,7 @@
   const openTheoryButton = document.querySelector("#open-theory-btn");
   const lessonSteps = [...document.querySelectorAll("#lesson-steps [data-step]")];
   const lessonName = isBonus ? unit.title : `Урок ${unit.id}`;
-  document.documentElement.style.setProperty("--lesson-accent", unit.accent || "var(--brand)");
+  document.documentElement.style.setProperty("--lesson-accent", unit.accent || "var(--text-muted)");
   const taskTitle = document.querySelector("#task-title");
   const taskArea = document.querySelector("#task-area");
   const progress = document.querySelector("#lesson-progress");
@@ -336,19 +336,33 @@
   }
 
   function markAnswerStates(correct) {
+    function appendStateIcon(button, name) {
+      if (!button.querySelector(".state-icon")) button.append(ui.icon(name, "icon state-icon"));
+    }
+
     if (currentTask.type === "choice" || currentTask.type === "hotkeys") {
       for (const button of currentSection.querySelectorAll("button[data-answer]")) {
         button.classList.add("is-disabled");
         button.disabled = true;
-        if (button.dataset.answer === currentTask.answer) button.classList.add("is-correct");
-        else if (!correct && button.dataset.answer === selectedAnswer) button.classList.add("is-wrong");
+        if (button.dataset.answer === currentTask.answer) {
+          button.classList.add("is-correct");
+          appendStateIcon(button, "check");
+        } else if (!correct && button.dataset.answer === selectedAnswer) {
+          button.classList.add("is-wrong");
+          appendStateIcon(button, "close");
+        }
       }
     } else if (currentTask.type === "builder") {
       for (const button of currentSection.querySelectorAll("button[data-block-index]")) {
         button.classList.add("is-disabled");
         button.disabled = true;
-        if (correct) button.classList.add("is-correct");
-        else button.classList.add("is-wrong");
+        if (correct) {
+          button.classList.add("is-correct");
+          appendStateIcon(button, "check");
+        } else {
+          button.classList.add("is-wrong");
+          appendStateIcon(button, "close");
+        }
       }
     }
   }
@@ -364,7 +378,7 @@
     dismissButton.hidden = true;
     continueButton.hidden = false;
     continueButton.textContent = correct ? "Продолжить" : "Понятно";
-    if (correct) successPanel.textContent = praise[Math.floor(Math.random() * praise.length)];
+    if (correct) successPanel.querySelector("span").textContent = praise[Math.floor(Math.random() * praise.length)];
     else errorExplanation.textContent = `Правильный ответ: ${answerText()}. ${currentTask.explain}`;
     feedback.hidden = false;
     feedback.classList.add("is-visible");
@@ -467,6 +481,8 @@
       termButton.classList.remove("is-selected");
       termButton.classList.add("is-matched", "is-disabled");
       button.classList.add("is-matched", "is-disabled");
+      termButton.append(ui.icon("check", "icon state-icon"));
+      button.append(ui.icon("check", "icon state-icon"));
       termButton.disabled = true;
       button.disabled = true;
       selectedTerm = null;
@@ -477,9 +493,13 @@
     if (!wrongForCurrent) recordWrong();
     termButton.classList.add("is-wrong");
     button.classList.add("is-wrong");
+    termButton.append(ui.icon("close", "icon state-icon"));
+    button.append(ui.icon("close", "icon state-icon"));
     window.setTimeout(() => {
       termButton.classList.remove("is-wrong", "is-selected");
       button.classList.remove("is-wrong");
+      termButton.querySelector(".state-icon")?.remove();
+      button.querySelector(".state-icon")?.remove();
     }, 400);
     selectedTerm = null;
   }

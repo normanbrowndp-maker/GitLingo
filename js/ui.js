@@ -4,11 +4,24 @@ window.MEGA = window.MEGA || {};
   let toastTimer;
   let modal;
 
+  function createIcon(name, className = "icon") {
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("class", className);
+    svg.setAttribute("viewBox", "0 0 24 24");
+    svg.setAttribute("aria-hidden", "true");
+    svg.setAttribute("focusable", "false");
+    const use = document.createElementNS("http://www.w3.org/2000/svg", "use");
+    use.setAttribute("href", `#icon-${name}`);
+    svg.append(use);
+    return svg;
+  }
+
   function updateStreak() {
     if (!window.MEGA.state) return;
     const streak = window.MEGA.state.get().streak;
     for (const element of document.querySelectorAll("#streak-count, [data-streak-count], .site-header__streak")) {
-      element.textContent = `🔥 ${streak}`;
+      const value = element.lastElementChild;
+      if (value?.tagName === "SPAN") value.textContent = String(streak);
     }
   }
 
@@ -94,6 +107,7 @@ window.MEGA = window.MEGA || {};
   }
 
   window.MEGA.ui = {
+    icon: createIcon,
     updateStreak,
     streakLabel,
     toast: showToast,

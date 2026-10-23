@@ -93,7 +93,7 @@ p {
 }
 
 :focus-visible {
-  outline: 3px solid var(--brand);
+  outline: 3px solid var(--text-muted);
   outline-offset: 3px;
 }
 
@@ -160,9 +160,12 @@ p {
   font-weight: 800;
 }
 
-.site-header__nav a:hover,
 .site-header__nav a.is-active {
-  color: var(--brand-ink);
+  color: var(--brand);
+}
+
+.site-header__nav a:hover:not(.is-active) {
+  color: var(--text);
 }
 
 .site-header__nav a.is-active {
@@ -177,6 +180,9 @@ p {
 }
 
 .site-header__streak {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
   white-space: nowrap;
   font-weight: 800;
 }

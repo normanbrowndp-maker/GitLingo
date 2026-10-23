@@ -26,6 +26,11 @@
       link.href = `lesson.html?id=${lesson.id}`;
       link.dataset.lessonId = String(lesson.id);
       link.dataset.status = status;
+      link.style.setProperty("--lesson-accent", lesson.accent || "var(--text-muted)");
+      if (status === "locked" || status === "completed") {
+        const icon = ui.icon(status === "locked" ? "lock" : "check", "icon lesson-node__icon");
+        link.append(icon);
+      }
       const title = document.createElement("span");
       title.className = "lesson-node__title";
       title.textContent = `Урок ${lesson.id}: ${lesson.title}`;
@@ -40,7 +45,7 @@
       if (status === "completed") {
         const meta = document.createElement("span");
         meta.className = "lesson-node__meta";
-        meta.textContent = `✓ · точность ${Math.round(record.bestAccuracy)}%`;
+        meta.append(ui.icon("check"), document.createTextNode(`· точность ${Math.round(record.bestAccuracy)}%`));
         link.append(meta);
       }
 
@@ -62,8 +67,10 @@
       link.dataset.bonus = index === 0 ? "figma" : "vscode";
       link.dataset.bonusId = bonus.id;
       link.dataset.completed = String(completed);
+      link.style.setProperty("--lesson-accent", bonus.accent || "var(--text-muted)");
       link.setAttribute("aria-label", completed ? `${bonus.title}, пройдено` : bonus.title);
-      link.textContent = bonus.title;
+      link.append(ui.icon(index === 0 ? "sparkles" : "code"), document.createTextNode(bonus.title));
+      if (completed) link.append(ui.icon("check", "icon bonus-check-icon"));
       item.append(link);
       bonusList.append(item);
     }
@@ -127,7 +134,8 @@
     button.className = className;
     button.dataset.levelAction = action;
     if (level) button.dataset.level = level;
-    button.textContent = label;
+    if (action === "close") button.append(ui.icon("close"));
+    else button.textContent = label;
     return button;
   }
 
@@ -154,7 +162,7 @@
 
     const contents = [heading, description, actions];
     if (isChange) {
-      const closeButton = createLevelButton("×", "close", "level-dialog__close");
+      const closeButton = createLevelButton("", "close", "level-dialog__close");
       closeButton.setAttribute("aria-label", "Закрыть");
       contents.push(closeButton);
     }
@@ -180,7 +188,7 @@
     );
     const contents = [heading, description, actions];
     if (levelDialogMode === "change") {
-      const closeButton = createLevelButton("×", "close", "level-dialog__close");
+      const closeButton = createLevelButton("", "close", "level-dialog__close");
       closeButton.setAttribute("aria-label", "Закрыть");
       contents.push(closeButton);
     }
