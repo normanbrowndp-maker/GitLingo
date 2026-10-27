@@ -2,8 +2,11 @@ window.MEGA = window.MEGA || {};
 
 (() => {
   const key = "mega-state";
+  const backupKey = "mega-state-backup-v1";
+  const exportVersion = 1;
   const lessonIds = [1, 2, 3, 4, 5];
   const bonusIds = ["b1", "b2"];
+  const profileLevels = ["Ничего", "Немного", "Уверенно"];
 
   function createDefaultState() {
     return {
@@ -21,61 +24,218 @@ window.MEGA = window.MEGA || {};
     };
   }
 
-  function normalizeState(value) {
-    if (!value || typeof value !== "object" || value.v !== 1) return null;
-    if (!value.lessons || typeof value.lessons !== "object" || !value.bonuses || typeof value.bonuses !== "object") return null;
+  function clone(value) {
+    return JSON.parse(JSON.stringify(value));
+  }
 
-    const state = createDefaultState();
-    state.xp = Number.isFinite(value.xp) && value.xp >= 0 ? Math.floor(value.xp) : 0;
-    state.streak = Number.isFinite(value.streak) && value.streak >= 0 ? Math.floor(value.streak) : 0;
-    state.lastActiveDate = typeof value.lastActiveDate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value.lastActiveDate)
-      ? value.lastActiveDate
-      : null;
-    const profileLevel = value.profile && ["Ничего", "Немного", "Уверенно"].includes(value.profile.level)
-      ? value.profile.level
-      : null;
-    state.profile = { level: profileLevel };
+  function makeStatus(kind, details = {}) {
+    return { kind, writable: true, migrated: false, ...details };
+  }
 
-    for (const id of lessonIds) {
-      const saved = value.lessons[String(id)];
-      if (!saved || typeof saved !== "object") continue;
-      const bestAccuracy = Number(saved.bestAccuracy);
-      state.lessons[String(id)] = {
-        completed: Boolean(saved.completed && saved.testPassed),
-        bestAccuracy: Number.isFinite(bestAccuracy) ? Math.min(100, Math.max(0, bestAccuracy)) : 0,
-        testPassed: Boolean(saved.testPassed)
-      };
+  let state = createDefaultState();
+  let status = makeStatus("loading");
+  let protectedRaw = null;
+
+  function markProtected(kind, raw, errorType) {
+    protectedRaw = raw;
+    status = makeStatus(kind, {
+      writable: false,
+      hasSavedState: raw !== null,
+      ...(errorType ? { errorType } : {})
+    });
+    state = createDefaultState();
+  }
+
+  function validateAndMigrate(value) {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      return { error: "invalid-structure" };
+    }
+    const version = value.v;
+    if (version !== undefined && (!Number.isInteger(version) || version < 1)) {
+      return { error: "invalid-structure" };
+    }
+    if (Number.isInteger(version) && version > 1) return { error: "unsupported-version" };
+    if (version !== undefined && version !== 1) return { error: "invalid-structure" };
+
+    const migrating = version === undefined;
+    const defaults = createDefaultState();
+    const result = { ...value, v: 1 };
+    let changed = migrating;
+
+    for (const field of ["xp", "streak"]) {
+      if (!Object.prototype.hasOwnProperty.call(value, field)) {
+        if (!migrating) return { error: "invalid-structure" };
+        result[field] = defaults[field];
+        changed = true;
+      } else if (!Number.isFinite(value[field]) || value[field] < 0) {
+        return { error: "invalid-structure" };
+      }
+    }
+    if (!Object.prototype.hasOwnProperty.call(value, "lastActiveDate")) {
+      if (!migrating) return { error: "invalid-structure" };
+      result.lastActiveDate = null;
+      changed = true;
+    } else if (value.lastActiveDate !== null
+      && (typeof value.lastActiveDate !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value.lastActiveDate))) {
+      return { error: "invalid-structure" };
     }
 
-    for (const id of bonusIds) {
-      const saved = value.bonuses[id];
-      if (saved && typeof saved === "object") {
-        state.bonuses[id] = { completed: Boolean(saved.completed) };
+    if (!Object.prototype.hasOwnProperty.call(value, "profile")) {
+      if (!migrating) return { error: "invalid-structure" };
+      result.profile = defaults.profile;
+      changed = true;
+    } else if (!value.profile || typeof value.profile !== "object" || Array.isArray(value.profile)) {
+      return { error: "invalid-structure" };
+    } else if (!Object.prototype.hasOwnProperty.call(value.profile, "level")) {
+      if (!migrating) return { error: "invalid-structure" };
+      result.profile = { ...value.profile, level: null };
+      changed = true;
+    } else if (!(value.profile.level === null || profileLevels.includes(value.profile.level))) {
+      return { error: "invalid-structure" };
+    }
+
+    for (const group of ["lessons", "bonuses"]) {
+      if (!Object.prototype.hasOwnProperty.call(value, group)) {
+        if (!migrating) return { error: "invalid-structure" };
+        result[group] = defaults[group];
+        changed = true;
+      } else if (!value[group] || typeof value[group] !== "object" || Array.isArray(value[group])) {
+        return { error: "invalid-structure" };
+      } else {
+        result[group] = { ...value[group] };
       }
     }
 
-    if (!state.lastActiveDate) state.streak = 0;
-    return state;
+    for (const id of lessonIds) {
+      const idKey = String(id);
+      const saved = result.lessons[idKey];
+      if (saved === undefined && migrating) {
+        result.lessons[idKey] = defaults.lessons[idKey];
+        changed = true;
+        continue;
+      }
+      if (!saved || typeof saved !== "object" || Array.isArray(saved)) return { error: "invalid-structure" };
+      const lesson = { ...saved };
+      for (const field of ["completed", "bestAccuracy", "testPassed"]) {
+        if (!Object.prototype.hasOwnProperty.call(saved, field)) {
+          if (!migrating) return { error: "invalid-structure" };
+          lesson[field] = defaults.lessons[idKey][field];
+          changed = true;
+        }
+      }
+      if (typeof lesson.completed !== "boolean" || typeof lesson.testPassed !== "boolean"
+        || !Number.isFinite(lesson.bestAccuracy) || lesson.bestAccuracy < 0 || lesson.bestAccuracy > 100) {
+        return { error: "invalid-structure" };
+      }
+      result.lessons[idKey] = lesson;
+    }
+
+    for (const id of bonusIds) {
+      const saved = result.bonuses[id];
+      if (saved === undefined && migrating) {
+        result.bonuses[id] = defaults.bonuses[id];
+        changed = true;
+        continue;
+      }
+      if (!saved || typeof saved !== "object" || Array.isArray(saved)
+        || typeof saved.completed !== "boolean") return { error: "invalid-structure" };
+      result.bonuses[id] = { ...saved };
+    }
+
+    return { state: result, changed };
   }
 
-  function saveState() {
-    try {
-      localStorage.setItem(key, JSON.stringify(state));
-    } catch {
-      // Состояние остаётся в памяти текущей вкладки.
+  function writeSerialized(serialized, allowProtected = false) {
+    if (!status.writable && !allowProtected) {
+      status.lastWriteError = "protected-state";
+      return { ok: false, error: "protected-state" };
     }
-    return getState();
+    try {
+      localStorage.setItem(key, serialized);
+      protectedRaw = null;
+      status = makeStatus("ok", { hasSavedState: true });
+      return { ok: true };
+    } catch (error) {
+      const errorType = error && error.name === "QuotaExceededError" ? "quota-exceeded" : "write-failed";
+      status.lastWriteError = errorType;
+      return { ok: false, error: errorType };
+    }
   }
 
-  function readState() {
+  function persist(nextState, options = {}) {
+    let serialized;
     try {
-      const stored = localStorage.getItem(key);
-      if (stored === null) return createDefaultState();
-      const parsed = normalizeState(JSON.parse(stored));
-      return parsed || createDefaultState();
+      serialized = JSON.stringify(nextState);
+      if (typeof serialized !== "string") throw new TypeError("not-serializable");
     } catch {
-      return createDefaultState();
+      status.lastWriteError = "serialization-failed";
+      return { ok: false, error: "serialization-failed" };
     }
+
+    if (options.backupRaw !== undefined) {
+      try {
+        const existingBackup = localStorage.getItem(backupKey);
+        if (existingBackup === null) localStorage.setItem(backupKey, options.backupRaw);
+        else if (existingBackup !== options.backupRaw) {
+          status = makeStatus("backup-conflict", { writable: false, hasSavedState: true });
+          protectedRaw = options.backupRaw;
+          return { ok: false, error: "backup-conflict" };
+        }
+      } catch (error) {
+        const errorType = error && error.name === "QuotaExceededError" ? "quota-exceeded" : "backup-failed";
+        status = makeStatus("backup-failed", { writable: false, hasSavedState: true, errorType });
+        protectedRaw = options.backupRaw;
+        return { ok: false, error: errorType };
+      }
+    }
+
+    const result = writeSerialized(serialized, options.allowProtected === true);
+    if (result.ok) state = nextState;
+    return result;
+  }
+
+  function loadState() {
+    let raw;
+    try {
+      raw = localStorage.getItem(key);
+    } catch (error) {
+      markProtected("storage-unavailable", null, error && error.name === "SecurityError" ? "access-denied" : "read-failed");
+      return;
+    }
+    if (raw === null) {
+      state = createDefaultState();
+      status = makeStatus("missing", { hasSavedState: false });
+      return;
+    }
+
+    let parsed;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      markProtected("corrupt-json", raw, "syntax-error");
+      return;
+    }
+    const checked = validateAndMigrate(parsed);
+    if (checked.error) {
+      markProtected(checked.error, raw);
+      return;
+    }
+    state = checked.state;
+    if (checked.changed) {
+      status = makeStatus("migration-pending", { hasSavedState: true, migrated: true });
+      const result = persist(state, { backupRaw: raw });
+      if (!result.ok) {
+        // Keep the validated state available in memory, but protect the source string.
+        protectedRaw = raw;
+        if (status.kind !== "backup-conflict" && status.kind !== "backup-failed") {
+          status = makeStatus("migration-write-failed", { writable: false, hasSavedState: true, migrated: true, errorType: result.error });
+        }
+      } else {
+        status.migrated = true;
+      }
+      return;
+    }
+    status = makeStatus("ok", { hasSavedState: true });
   }
 
   function localDateString(date = new Date()) {
@@ -92,24 +252,60 @@ window.MEGA = window.MEGA || {};
     return dateString === localDateString(today) || dateString === localDateString(yesterday);
   }
 
-  let state = readState();
-  saveState();
-
   function getState() {
-    const snapshot = JSON.parse(JSON.stringify(state));
+    const snapshot = clone(state);
     if (!isTodayOrYesterday(snapshot.lastActiveDate)) snapshot.streak = 0;
     return snapshot;
   }
 
+  function saveState(options = {}) {
+    const result = persist(state, { allowProtected: options.allowProtected === true });
+    return result.ok ? getState() : false;
+  }
+
+  loadState();
+
   window.MEGA.state = {
     get: getState,
     save: saveState,
+    getStorageStatus() {
+      return clone(status);
+    },
+    exportProgress() {
+      if (["corrupt-json", "invalid-structure", "unsupported-version", "storage-unavailable", "backup-failed", "backup-conflict", "migration-write-failed", "reset-write-failed"].includes(status.kind)) {
+        const error = new Error(`Progress export unavailable: ${status.kind}`);
+        error.code = status.kind;
+        throw error;
+      }
+      return JSON.stringify({ exportVersion, createdAt: new Date().toISOString(), progress: clone(state) });
+    },
+    getStoredStateRaw() {
+      if (protectedRaw !== null) return { ok: true, status: status.kind, raw: protectedRaw };
+      if (!status.hasSavedState) return { ok: false, status: status.kind, error: "no-saved-state" };
+      try {
+        return { ok: true, status: status.kind, raw: localStorage.getItem(key) };
+      } catch (error) {
+        return { ok: false, status: "storage-unavailable", error: error && error.name === "SecurityError" ? "access-denied" : "read-failed" };
+      }
+    },
     reset() {
+      const previousStatus = clone(status);
+      const previousRaw = protectedRaw;
       state = createDefaultState();
-      return saveState();
+      status.writable = true;
+      const result = persist(state, { allowProtected: true });
+      if (!result.ok) {
+        protectedRaw = previousRaw;
+        status = makeStatus("reset-write-failed", {
+          writable: false,
+          hasSavedState: previousStatus.hasSavedState === true,
+          errorType: result.error
+        });
+      }
+      return getState();
     },
     setProfileLevel(level) {
-      if (!["Ничего", "Немного", "Уверенно"].includes(level)) return false;
+      if (!profileLevels.includes(level)) return false;
       state.profile.level = level;
       saveState();
       return true;
