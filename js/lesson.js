@@ -245,15 +245,21 @@
 
   function renderBuilder(task, section) {
     const bank = section.querySelector(".lesson__block-bank");
+    clearBuilderAnimations();
     const answerZone = section.querySelector("#answer-zone");
     bank.replaceChildren();
-    answerZone.replaceChildren();
-    ui.shuffle(task.blocks.map((text, index) => ({ text, index }))).forEach(({ text, index }) => {
+    answerZone.replaceChildren(builderHint);
+    answerZone.classList.remove("is-wrong");
+    builderHint.hidden = false;
+    builderClearButton.disabled = true;
+    ui.shuffle(task.blocks.map((text, index) => ({ text, index }))).forEach(({ text, index }, bankPosition) => {
       const button = document.createElement("button");
       button.type = "button";
       button.className = "chip";
       button.dataset.block = String(index);
+      button.dataset.bankPosition = String(bankPosition);
       button.dataset.blockIndex = String(index);
+      button.setAttribute("aria-label", `Добавить ${text}`);
       button.textContent = text;
       bank.append(button);
     });
@@ -288,6 +294,8 @@
   }
 
   function renderTask(task) {
+    clearBuilderAnimations();
+    builderStatus.textContent = "";
     currentTask = task;
     currentSection = templates.find((section) => section.dataset.taskTemplate === task.type);
     selectedAnswer = null;
@@ -368,6 +376,7 @@
   }
 
   function openFeedback(correct) {
+    if (currentTask.type === "builder") builderClearButton.disabled = true;
     markAnswerStates(correct);
     successPanel.hidden = !correct;
     errorPanel.hidden = correct;
@@ -503,17 +512,87 @@
     }, 400);
     selectedTerm = null;
   }
+  function updateBuilderSelection() {
+    const answerZone = currentSection.querySelector("#answer-zone");
+    selectedBlocks = [...answerZone.querySelectorAll("[data-block-index]")]
+      .map((block) => currentTask.blocks[Number(block.dataset.blockIndex)]);
+    builderHint.hidden = selectedBlocks.length > 0;
+    builderClearButton.disabled = selectedBlocks.length === 0;
+    updateCheckState();
+  }
+
+  const builderClearButton = document.querySelector("[data-builder-clear]");
+  const builderHint = document.querySelector("[data-builder-hint]");
+  const builderStatus = document.querySelector("[data-builder-status]");
+  const builderAnimations = new Set();
+
+  function clearBuilderAnimations() {
+    for (const animation of builderAnimations) animation.cancel();
+    builderAnimations.clear();
+  }
+
+  function cancelBuilderAnimation(button) {
+    for (const animation of builderAnimations) {
+      if (animation.effect?.target === button) {
+        animation.cancel();
+        builderAnimations.delete(animation);
+      }
+    }
+  }
+
+  function returnBuilderBlock(button, bank) {
+    const position = Number(button.dataset.bankPosition);
+    const next = [...bank.querySelectorAll("button[data-block-index]")]
+      .find((candidate) => Number(candidate.dataset.bankPosition) > position);
+    bank.insertBefore(button, next || null);
+    button.setAttribute("aria-label", `Добавить ${button.textContent}`);
+  }
+
+  function moveBuilderFocus(button) {
+    try {
+      button.focus({ preventScroll: true });
+    } catch {
+      button.focus();
+    }
+  }
+
 
   function handleBuilderClick(event) {
     const button = event.target.closest("button[data-block-index]");
-    if (!button || !currentSection.contains(button) || button.disabled) return;
+    if (gameOver || feedback.classList.contains("is-visible") || !button
+      || !currentSection.contains(button) || button.disabled) return;
+    cancelBuilderAnimation(button);
+    const answerZone = currentSection.querySelector("#answer-zone");
+    const source = button.getBoundingClientRect();
+    const bank = currentSection.querySelector(".lesson__block-bank");
     const destination = button.parentElement.id === "answer-zone"
-      ? currentSection.querySelector(".lesson__block-bank")
-      : currentSection.querySelector("#answer-zone");
-    destination.append(button);
-    selectedBlocks = [...currentSection.querySelectorAll("#answer-zone [data-block-index]")]
-      .map((block) => currentTask.blocks[Number(block.dataset.blockIndex)]);
-    updateCheckState();
+      ? bank
+      : answerZone;
+    if (destination === bank) {
+      returnBuilderBlock(button, bank);
+      builderStatus.textContent = `Убрано: ${button.textContent}`;
+    } else {
+      answerZone.append(button);
+      button.setAttribute("aria-label", `Убрать ${button.textContent}`);
+      builderStatus.textContent = `Добавлено: ${button.textContent}`;
+    }
+    animateBlock(button, source);
+    answerZone.classList.remove("is-wrong");
+    updateBuilderSelection();
+    moveBuilderFocus(button);
+  }
+
+  function animateBlock(button, source) {
+    if (!source || window.matchMedia("(prefers-reduced-motion: reduce)").matches
+      || typeof button.animate !== "function") return;
+    const target = button.getBoundingClientRect();
+    const animation = button.animate([
+      { transform: `translate(${source.left - target.left}px, ${source.top - target.top}px)` },
+      { transform: "translate(0, 0)" }
+    ], { duration: 180, easing: "ease-out" });
+    builderAnimations.add(animation);
+    animation.onfinish = () => builderAnimations.delete(animation);
+    animation.oncancel = () => builderAnimations.delete(animation);
   }
 
   function checkAnswer() {
@@ -717,6 +796,24 @@
     hintText.textContent = visible ? "" : currentTask.hint || "";
     hintButton.textContent = visible ? "Подсказка" : "Скрыть подсказку";
     hintButton.setAttribute("aria-expanded", String(!visible));
+  });
+  builderClearButton.addEventListener("click", () => {
+    if (gameOver || currentTask?.type !== "builder" || feedback.classList.contains("is-visible")) return;
+    const answerZone = currentSection.querySelector("#answer-zone");
+    const bank = currentSection.querySelector(".lesson__block-bank");
+    const blocks = [...answerZone.querySelectorAll("button[data-block-index]")];
+    blocks.forEach(cancelBuilderAnimation);
+    const sources = blocks.map((block) => block.getBoundingClientRect());
+    for (const [index, block] of blocks.entries()) {
+      returnBuilderBlock(block, bank);
+      animateBlock(block, sources[index]);
+    }
+    answerZone.classList.remove("is-wrong");
+    updateBuilderSelection();
+    builderStatus.textContent = "Ответ очищен";
+    const firstBankBlock = bank.querySelector("button[data-block-index]");
+    if (firstBankBlock) moveBuilderFocus(firstBankBlock);
+    else builderClearButton.focus();
   });
   document.querySelector(".lesson__block-bank").closest("[data-task-template]").addEventListener("click", handleBuilderClick);
   document.querySelector("#exit-btn").addEventListener("click", (event) => {

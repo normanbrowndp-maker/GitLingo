@@ -107,7 +107,10 @@
 
     <section hidden data-task-template="builder" aria-label="Шаблон сборки ответа">
       <h2>Собери ответ</h2>
-      <div id="answer-zone" aria-label="Зона сборки ответа"></div>
+      <div id="answer-zone" aria-label="Зона сборки ответа">
+        <p data-builder-hint>Выбери блоки ниже, чтобы собрать команду</p>
+      </div>
+      <p class="visually-hidden" data-builder-status aria-live="polite" aria-atomic="true"></p>
       <div class="lesson__block-bank" aria-label="Банк блоков">
         <button class="chip" type="button" data-block="1">Блок 1</button>
         <button class="chip" type="button" data-block="2">Блок 2</button>
@@ -116,6 +119,7 @@
         <button class="chip" type="button" data-block="5">Блок 5</button>
         <button class="chip" type="button" data-block="6">Блок 6</button>
       </div>
+      <button type="button" class="btn btn--secondary" data-builder-clear disabled>Очистить</button>
     </section>
 
     <section hidden data-task-template="hotkeys" aria-label="Шаблон задания на горячие клавиши">
