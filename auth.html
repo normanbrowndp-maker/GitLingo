@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Аккаунт — GitLingo</title>
+  <meta name="application-name" content="GitLingo">
+  <script>
+    try {
+      const storedTheme = localStorage.getItem("mega-theme");
+      const savedTheme = storedTheme === "light" || storedTheme === "dark" ? storedTheme : null;
+      document.documentElement.dataset.theme = savedTheme || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    } catch {
+      document.documentElement.dataset.theme = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    }
+  </script>
+  <link rel="stylesheet" href="css/tokens.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/pages.css">
+  <link rel="stylesheet" href="css/auth.css">
+  <script src="js/theme.js" defer></script>
+  <script src="assets/vendor/supabase-js-2.118.0.js" defer></script>
+  <script src="js/supabase-config.js" defer></script>
+  <script src="js/auth.js" defer></script>
+  <script src="js/nav.js" defer></script>
+  <script src="js/auth-page.js" defer></script>
+</head>
+<body class="page-auth">
+  <svg class="icon-sprite" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+    <symbol id="icon-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="2.6"/></symbol>
+    <symbol id="icon-eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m3 3 18 18M10.6 6.2A10.8 10.8 0 0 1 12 6c6.4 0 10 6 10 6a16 16 0 0 1-3.2 3.6M6.2 6.4C3.6 8.2 2 12 2 12s3.6 6 10 6c1 0 2-.2 2.9-.5"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></symbol>
+  </svg>
+
+  <header class="site-header">
+    <a class="site-header__logo" href="index.html" data-home-link><span>Git</span><span class="site-header__accent">Lingo</span></a>
+    <nav class="site-header__nav" aria-label="Основная навигация">
+      <a href="learn.html" data-nav-link>Учиться</a>
+      <a href="pet.html" data-nav-link>Питомец</a>
+      <a href="auth.html" data-nav-link data-auth-nav-link aria-busy="true" hidden><span class="visually-hidden">Проверка состояния аккаунта</span></a>
+    </nav>
+    <div class="site-header__status">
+      <button type="button" id="theme-toggle" class="theme-toggle" aria-label="Включить тёмную тему" aria-pressed="false">
+        <svg class="theme-toggle__icon theme-toggle__icon--moon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#icon-moon"></use></svg>
+        <svg class="theme-toggle__icon theme-toggle__icon--sun" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#icon-sun"></use></svg>
+        <span class="visually-hidden">Переключить тему</span>
+      </button>
+    </div>
+  </header>
+
+  <main class="auth-main">
+    <section class="auth-card" aria-labelledby="auth-title">
+      <p class="auth-eyebrow">GitLingo</p>
+      <h1 id="auth-title">Аккаунт</h1>
+      <p class="auth-local-note">Прогресс пока хранится в этом браузере и не привязан к аккаунту.</p>
+
+      <section class="auth-state" data-auth-initializing aria-live="polite">
+        <p>Проверяем состояние аккаунта…</p>
+      </section>
+
+      <section class="auth-state" data-auth-unavailable hidden>
+        <p class="auth-session-status">Гость</p>
+        <p class="auth-message" id="auth-unavailable-message" role="status" aria-live="polite"></p>
+      </section>
+
+      <section class="auth-state" data-auth-guest hidden>
+        <p class="auth-session-status">Гость</p>
+        <div class="auth-mode-switch" aria-label="Режим аккаунта">
+          <button type="button" class="btn btn--secondary is-selected" data-auth-mode="sign-in" aria-pressed="true">Вход</button>
+          <button type="button" class="btn btn--secondary" data-auth-mode="sign-up" aria-pressed="false">Регистрация</button>
+        </div>
+
+        <form id="auth-sign-in-form" class="auth-form" novalidate>
+          <label for="auth-sign-in-email">Email</label>
+          <input id="auth-sign-in-email" name="email" type="email" autocomplete="email" inputmode="email" required maxlength="254" aria-describedby="auth-sign-in-email-error">
+          <p class="auth-field-error" id="auth-sign-in-email-error" hidden></p>
+
+          <label for="auth-sign-in-password">Пароль</label>
+          <div class="auth-password-field">
+            <input id="auth-sign-in-password" name="password" type="password" autocomplete="current-password" required aria-describedby="auth-sign-in-password-error">
+            <button type="button" class="auth-password-toggle" data-password-target="auth-sign-in-password" aria-label="Показать пароль" aria-pressed="false">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-eye"></use></svg>
+            </button>
+          </div>
+          <p class="auth-field-error" id="auth-sign-in-password-error" hidden></p>
+          <button type="submit" class="btn btn--primary auth-submit">Войти</button>
+          <button type="button" class="auth-text-button" data-auth-forgot>Забыли пароль?</button>
+        </form>
+
+        <form id="auth-sign-up-form" class="auth-form" hidden novalidate>
+          <label for="auth-sign-up-email">Email</label>
+          <input id="auth-sign-up-email" name="email" type="email" autocomplete="email" inputmode="email" required maxlength="254" aria-describedby="auth-sign-up-email-error">
+          <p class="auth-field-error" id="auth-sign-up-email-error" hidden></p>
+
+          <label for="auth-sign-up-password">Пароль</label>
+          <div class="auth-password-field">
+            <input id="auth-sign-up-password" name="password" type="password" autocomplete="new-password" required aria-describedby="auth-sign-up-password-error">
+            <button type="button" class="auth-password-toggle" data-password-target="auth-sign-up-password" aria-label="Показать пароль" aria-pressed="false">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-eye"></use></svg>
+            </button>
+          </div>
+          <p class="auth-field-error" id="auth-sign-up-password-error" hidden></p>
+
+          <label for="auth-sign-up-confirm">Повторите пароль</label>
+          <div class="auth-password-field">
+            <input id="auth-sign-up-confirm" name="password-confirm" type="password" autocomplete="new-password" required aria-describedby="auth-sign-up-confirm-error">
+            <button type="button" class="auth-password-toggle" data-password-target="auth-sign-up-confirm" aria-label="Показать пароль" aria-pressed="false">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-eye"></use></svg>
+            </button>
+          </div>
+          <p class="auth-field-error" id="auth-sign-up-confirm-error" hidden></p>
+          <button type="submit" class="btn btn--primary auth-submit">Создать аккаунт</button>
+        </form>
+
+        <form id="auth-reset-request-form" class="auth-form" hidden novalidate>
+          <p>Если адрес зарегистрирован, мы отправим письмо со ссылкой для смены пароля.</p>
+          <label for="auth-reset-email">Email</label>
+          <input id="auth-reset-email" name="email" type="email" autocomplete="email" inputmode="email" required maxlength="254" aria-describedby="auth-reset-email-error">
+          <p class="auth-field-error" id="auth-reset-email-error" hidden></p>
+          <button type="submit" class="btn btn--primary auth-submit">Отправить письмо</button>
+          <button type="button" class="auth-text-button" data-auth-back-to-sign-in>Назад ко входу</button>
+        </form>
+
+        <p class="auth-message" id="auth-message" role="status" aria-live="polite"></p>
+      </section>
+
+      <section class="auth-state" data-auth-account hidden>
+        <p class="auth-session-status">Выполнен вход</p>
+        <p class="auth-account-email" data-auth-email></p>
+        <p class="auth-message" data-auth-account-message role="status" aria-live="polite"></p>
+        <button type="button" class="btn btn--secondary auth-submit" data-auth-sign-out>Выйти</button>
+      </section>
+
+      <section class="auth-state" data-auth-recovery hidden>
+        <p class="auth-session-status">Ссылка подтверждена</p>
+        <p>Введите новый пароль. Эта форма доступна только после обработки ссылки восстановления.</p>
+        <form id="auth-password-update-form" class="auth-form" novalidate>
+          <label for="auth-new-password">Новый пароль</label>
+          <div class="auth-password-field">
+            <input id="auth-new-password" name="password" type="password" autocomplete="new-password" required aria-describedby="auth-new-password-error">
+            <button type="button" class="auth-password-toggle" data-password-target="auth-new-password" aria-label="Показать пароль" aria-pressed="false">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-eye"></use></svg>
+            </button>
+          </div>
+          <p class="auth-field-error" id="auth-new-password-error" hidden></p>
+
+          <label for="auth-new-password-confirm">Повторите новый пароль</label>
+          <div class="auth-password-field">
+            <input id="auth-new-password-confirm" name="password-confirm" type="password" autocomplete="new-password" required aria-describedby="auth-new-password-confirm-error">
+            <button type="button" class="auth-password-toggle" data-password-target="auth-new-password-confirm" aria-label="Показать пароль" aria-pressed="false">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-eye"></use></svg>
+            </button>
+          </div>
+          <p class="auth-field-error" id="auth-new-password-confirm-error" hidden></p>
+          <button type="submit" class="btn btn--primary auth-submit">Сменить пароль</button>
+        </form>
+        <p class="auth-message" data-auth-recovery-message role="status" aria-live="polite"></p>
+      </section>
+    </section>
+  </main>
+
+  <footer class="site-footer"><p>GitLingo</p></footer>
+</body>
+</html>
