@@ -42,6 +42,11 @@
     <symbol id="icon-command" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H6a3 3 0 0 0-3 3v2a4 4 0 0 0 4 4 4 4 0 0 0-4 4v2a3 3 0 0 0 3 3h2m8-18h2a3 3 0 0 1 3 3v2a4 4 0 0 1-4 4 4 4 0 0 1 4 4v2a3 3 0 0 1-3 3h-2M8 8h8v8H8z"/></symbol>
     <symbol id="icon-keyboard" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="M6 9h.01M9 9h.01M12 9h.01M15 9h.01M18 9h.01M6 12h.01M9 12h.01M12 12h.01M15 12h.01M18 12h.01M8 15h8"/></symbol>
     <symbol id="icon-swap" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h15m-4-4 4 4-4 4M20 17H5m4 4-4-4 4-4"/></symbol>
+    <symbol id="pet-egg" viewBox="0 0 64 64"><path d="M32 5C19 5 10 28 10 42a22 22 0 0 0 44 0C54 28 45 5 32 5Z"/></symbol>
+    <symbol id="pet-egg-crack" viewBox="0 0 64 64"><path d="m31 25-5 8 7 3-5 9 7 4"/></symbol>
+    <symbol id="pet-pup" viewBox="0 0 64 64"><path d="M10 39c0-12 8-21 20-21 7 0 13 3 17 9l9-4-3 12 3 8-10-2c-4 8-11 12-21 12-9 0-15-5-15-14Z"/><path d="m25 21 5-9 7 10"/><path class="pet-art__detail" d="M38 41c5 5 10 5 15 3"/><circle class="pet-art__eye" cx="39" cy="33" r="1.8"/></symbol>
+    <symbol id="pet-shark" viewBox="0 0 64 64"><path d="M5 34c12-10 24-14 38-11l8-13 3 18 7 7-12 3C37 51 21 51 5 40l7-3-7-3Z"/><path d="m23 27 8 9-7 12m18-23 3 13"/><circle class="pet-art__eye" cx="46" cy="32" r="1.5"/></symbol>
+    <symbol id="pet-megalodon" viewBox="0 0 64 64"><path d="M4 31c13-12 26-16 41-12L54 4l3 20 5 9-13 4C37 52 20 54 4 41l8-4-8-6Z"/><path d="m23 24 9 11-8 15m17-28 3 16"/><path class="pet-art__detail" d="M40 38 57 36"/><path class="pet-art__tooth" d="m43 38 3 6 3-7 3 6 3-7"/></symbol>
   </svg>
   <header class="site-header">
     <a class="site-header__logo" href="index.html" data-home-link><span>Git</span><span class="site-header__accent">Lingo</span></a>
@@ -63,7 +68,7 @@
     <section aria-labelledby="pet-title">
       <h1 id="pet-title">Твой питомец</h1>
       <div class="pet-current card">
-        <p class="pet-current__emoji" aria-label="Яйцо"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-egg"></use></svg></p>
+        <p class="pet-current__emoji" aria-label="Яйцо" data-current-pet><svg class="pet-art" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><use href="#pet-egg"></use><use class="pet-art__crack" href="#pet-egg-crack"></use></svg></p>
         <h2>Яйцо</h2>
         <progress id="pet-xp-progress" value="0" max="100">0 из 100 XP</progress>
         <p>0 из 100 XP до следующего уровня</p>
@@ -74,21 +79,21 @@
       <h2 id="pet-levels-title">Уровни питомца</h2>
       <ol class="pet-levels">
         <li data-level="1">
-          <h3>Яйцо <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-egg"></use></svg></h3>
+          <h3>Яйцо <svg class="pet-art" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><use href="#pet-egg"></use></svg></h3>
           <p>Требуется XP: <span>0</span></p>
         </li>
         <li data-level="2">
-          <h3>Акулёнок <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-shark"></use></svg></h3>
+          <h3>Акулёнок <svg class="pet-art" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><use href="#pet-pup"></use></svg></h3>
           <svg class="pet-level__lock icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-lock"></use></svg>
           <p>Требуется XP: <span>100</span></p>
         </li>
         <li data-level="3">
-          <h3>Акула <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-shark"></use></svg></h3>
+          <h3>Акула <svg class="pet-art" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><use href="#pet-shark"></use></svg></h3>
           <svg class="pet-level__lock icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-lock"></use></svg>
           <p>Требуется XP: <span>300</span></p>
         </li>
         <li data-level="4">
-          <h3>Мегаладон <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-megalodon"></use></svg></h3>
+          <h3>Мегаладон <svg class="pet-art" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><use href="#pet-megalodon"></use></svg></h3>
           <svg class="pet-level__lock icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-lock"></use></svg>
           <p>Требуется XP: <span>700</span></p>
         </li>
@@ -99,5 +104,6 @@
   <footer class="site-footer">
     <p>GitLingo</p>
   </footer>
+  <script src="js/pet.js" defer></script>
 </body>
 </html>

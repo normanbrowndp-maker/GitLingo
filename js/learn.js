@@ -20,17 +20,29 @@
       const status = record.completed
         ? "completed"
         : (state.isLessonUnlocked(lesson.id) ? "open" : "locked");
+      const previous = lesson.id > 1 ? saved.lessons[String(lesson.id - 1)] : null;
       const item = document.createElement("li");
+      item.dataset.connector = previous?.completed ? "completed" : "pending";
+      if (previous?.completed) {
+        const previousLesson = data.lessons.find((entry) => entry.id === lesson.id - 1);
+        if (previousLesson?.accent) item.style.setProperty("--connector-accent", previousLesson.accent);
+      }
       const link = document.createElement("a");
       link.className = "lesson-node";
       link.href = `lesson.html?id=${lesson.id}`;
       link.dataset.lessonId = String(lesson.id);
       link.dataset.status = status;
       link.style.setProperty("--lesson-accent", lesson.accent || "var(--text-muted)");
-      if (status === "locked" || status === "completed") {
-        const icon = ui.icon(status === "locked" ? "lock" : "check", "icon lesson-node__icon");
-        link.append(icon);
-      }
+      link.style.setProperty("--lesson-accent-strong", `color-mix(in srgb, ${lesson.accent || "var(--text-muted)"} 70%, #000)`);
+      const orb = document.createElement("span");
+      orb.className = "lesson-node__orb";
+      orb.setAttribute("aria-hidden", "true");
+      if (status === "locked") orb.append(ui.icon("lock", "icon lesson-node__icon"));
+      else if (status === "completed") orb.append(ui.icon("check", "icon lesson-node__icon"));
+      else orb.textContent = String(lesson.id);
+      link.append(orb);
+      const details = document.createElement("span");
+      details.className = "lesson-node__details";
       const title = document.createElement("span");
       title.className = "lesson-node__title";
       title.textContent = `Урок ${lesson.id}: ${lesson.title}`;
@@ -38,17 +50,29 @@
       description.className = "lesson-node__description";
       description.textContent = lesson.description;
       const statusLabel = document.createElement("span");
-      statusLabel.className = "lesson-node__status";
-      statusLabel.textContent = status === "completed" ? "Пройден" : (status === "open" ? "Доступен" : "Закрыт");
-      link.append(title, description, statusLabel);
+      statusLabel.className = "lesson-node__status visually-hidden";
+      statusLabel.textContent = status === "completed" ? "Урок пройден" : (status === "open" ? "Урок доступен" : "Урок закрыт");
+      details.append(title, description, statusLabel);
 
       if (status === "completed") {
-        const meta = document.createElement("span");
-        meta.className = "lesson-node__meta";
-        meta.append(ui.icon("check"), document.createTextNode(`· точность ${Math.round(record.bestAccuracy)}%`));
-        link.append(meta);
+        if (record.bestAccuracy > 0) {
+          const meta = document.createElement("span");
+          meta.className = "lesson-node__meta";
+          meta.textContent = `Точность ${Math.round(record.bestAccuracy)}%`;
+          details.append(meta);
+        }
+      } else if (status === "open") {
+        const action = document.createElement("span");
+        action.className = "lesson-node__action";
+        const passedBefore = lesson.id > 1 && saved.lessons[String(lesson.id - 1)]?.completed;
+        action.textContent = passedBefore ? "Продолжить" : "Начать";
+        details.append(action);
       }
 
+      link.append(details);
+      link.setAttribute("aria-label", [title.textContent, description.textContent, statusLabel.textContent,
+        status === "completed" && record.bestAccuracy > 0 ? `Точность ${Math.round(record.bestAccuracy)} процентов` : ""]
+        .filter(Boolean).join(". "));
       item.append(link);
       lessonList.append(item);
     }
@@ -68,8 +92,11 @@
       link.dataset.bonusId = bonus.id;
       link.dataset.completed = String(completed);
       link.style.setProperty("--lesson-accent", bonus.accent || "var(--text-muted)");
+      link.style.setProperty("--lesson-accent-strong", `color-mix(in srgb, ${bonus.accent || "var(--text-muted)"} 70%, #000)`);
       link.setAttribute("aria-label", completed ? `${bonus.title}, пройдено` : bonus.title);
-      link.append(ui.icon(index === 0 ? "sparkles" : "code"), document.createTextNode(bonus.title));
+      const icon = ui.icon(index === 0 ? "figma" : "vscode", "icon bonus-card__icon");
+      icon.setAttribute("aria-hidden", "true");
+      link.append(icon, document.createTextNode(bonus.title));
       if (completed) link.append(ui.icon("check", "icon bonus-check-icon"));
       item.append(link);
       bonusList.append(item);
