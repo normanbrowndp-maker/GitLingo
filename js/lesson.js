@@ -34,6 +34,7 @@
   const taskTitle = document.querySelector("#task-title");
   const taskArea = document.querySelector("#task-area");
   const progress = document.querySelector("#lesson-progress");
+  const progressContainer = document.querySelector(".lesson-progress");
   const livesContainer = document.querySelector(".lives");
   const livesCount = document.querySelector("#lives");
   const checkButton = document.querySelector("#check-btn");
@@ -45,6 +46,7 @@
   const hintButton = document.querySelector("#hint-btn");
   const continueButton = document.querySelector("#continue-btn");
   const dismissButton = document.querySelector("[data-feedback-dismiss]");
+  const matchingCount = document.querySelector("[data-matching-count]");
   const testBadge = document.querySelector("#test-badge");
   const templates = [...document.querySelectorAll("[data-task-template]")];
   const praise = ["Отлично!", "Верно!", "Так держать!"];
@@ -73,6 +75,11 @@
   let gameOver = false;
   let startedAt = Date.now();
   let testIndex = 0;
+  let pendingLifeLoss = null;
+  let continuingTask = false;
+  let noLivesModalOpen = false;
+  let progressPulseTimer = null;
+  let xpPopupTimer = null;
 
   function setScreen(nextScreen) {
     screen = nextScreen;
@@ -83,6 +90,7 @@
     taskGuidance.hidden = screen !== "tasks";
     lessonFooter.hidden = screen !== "tasks" && screen !== "test";
     progress.hidden = screen !== "tasks" && screen !== "test";
+    progressContainer.hidden = progress.hidden;
     testBadge.hidden = screen !== "test";
     livesContainer.hidden = screen !== "tasks";
     const labels = { intro: "Введение", theory: "Теория", tasks: "Задания", test: "Тест" };
@@ -180,10 +188,21 @@
     resetSession(sourceTasks, false);
   }
 
-  function setProgress(value) {
+  function setProgress(value, pulse = false) {
     progress.value = value;
     progress.textContent = `${value} из ${progress.max}`;
     progress.setAttribute("aria-valuenow", String(value));
+    progressContainer.style.setProperty("--progress-position", `${progress.max ? value / progress.max * 100 : 0}%`);
+    if (pulse) {
+      window.clearTimeout(progressPulseTimer);
+      progressContainer.classList.remove("progress--pulse");
+      void progressContainer.offsetWidth;
+      progressContainer.classList.add("progress--pulse");
+      progressPulseTimer = window.setTimeout(() => {
+        progressContainer.classList.remove("progress--pulse");
+        progressPulseTimer = null;
+      }, 500);
+    }
   }
 
   function updateCheckState() {
@@ -202,11 +221,12 @@
   function renderChoice(task, section) {
     const heading = section.querySelector("h2");
     const options = ui.shuffle(task.options);
-    const buttons = options.map((option) => {
+    const buttons = options.map((option, index) => {
       const button = document.createElement("button");
       button.type = "button";
       button.className = "choice-card";
       button.dataset.answer = option.id;
+      button.setAttribute("aria-label", `Вариант ${index + 1}: ${option.text}${option.code ? `, ${option.code}` : ""}`);
       button.addEventListener("click", () => setAnswerSelection(button, section));
 
       const label = document.createElement("span");
@@ -217,6 +237,11 @@
         code.textContent = option.code;
         button.append(code);
       }
+      const shortcut = document.createElement("kbd");
+      shortcut.className = "choice-shortcut";
+      shortcut.setAttribute("aria-hidden", "true");
+      shortcut.textContent = String(index + 1);
+      button.append(shortcut);
       return button;
     });
     section.replaceChildren(heading, ...buttons);
@@ -226,11 +251,11 @@
     const heading = section.querySelector("h2");
     const question = section.querySelector("p");
     question.textContent = task.question;
-    const buttons = ui.shuffle(task.options).map((option) => {
+    const buttons = ui.shuffle(task.options).map((option, index) => {
       const button = document.createElement("button");
       button.type = "button";
       button.dataset.answer = option.id;
-      button.setAttribute("aria-label", option.keys.join(" + "));
+      button.setAttribute("aria-label", `Вариант ${index + 1}: ${option.keys.join(" + ")}`);
       button.addEventListener("click", () => setAnswerSelection(button, section));
       option.keys.forEach((key, index) => {
         if (index) button.append(document.createTextNode(" + "));
@@ -238,6 +263,11 @@
         keycap.textContent = key;
         button.append(keycap);
       });
+      const shortcut = document.createElement("kbd");
+      shortcut.className = "choice-shortcut";
+      shortcut.setAttribute("aria-hidden", "true");
+      shortcut.textContent = String(index + 1);
+      button.append(shortcut);
       return button;
     });
     section.replaceChildren(heading, question, ...buttons);
@@ -245,8 +275,8 @@
 
   function renderBuilder(task, section) {
     const bank = section.querySelector(".lesson__block-bank");
-    clearBuilderAnimations();
     const answerZone = section.querySelector("#answer-zone");
+    clearBuilderAnimations();
     bank.replaceChildren();
     answerZone.replaceChildren(builderHint);
     answerZone.classList.remove("is-wrong");
@@ -257,10 +287,10 @@
       button.type = "button";
       button.className = "chip";
       button.dataset.block = String(index);
-      button.dataset.bankPosition = String(bankPosition);
       button.dataset.blockIndex = String(index);
-      button.setAttribute("aria-label", `Добавить ${text}`);
+      button.dataset.bankPosition = String(bankPosition);
       button.textContent = text;
+      button.setAttribute("aria-label", `Добавить ${text}`);
       bank.append(button);
     });
   }
@@ -279,7 +309,8 @@
       button.dataset.matchSide = side;
       button.dataset.pairIndex = String(index);
       button.textContent = text;
-      button.addEventListener("click", () => selectMatch(button, pair));
+      button.addEventListener("click", () => selectMatch(button));
+      button.addEventListener("animationend", () => button.classList.remove("match-flash"));
       return button;
     }
 
@@ -291,6 +322,7 @@
       definitions.append(createMatchButton(pair, index, "definition", pair.def));
     });
     section.prepend(heading);
+    matchingCount.textContent = `Пар найдено 0 из ${task.pairs.length}`;
   }
 
   function renderTask(task) {
@@ -302,6 +334,7 @@
     selectedBlocks = [];
     matchedPairs = new Set();
     selectedTerm = null;
+    pendingLifeLoss = null;
     attemptCount = attemptsByTask.get(task) || 0;
     wrongForCurrent = false;
     taskArea.dataset.taskType = task.type;
@@ -344,40 +377,28 @@
   }
 
   function markAnswerStates(correct) {
-    function appendStateIcon(button, name) {
-      if (!button.querySelector(".state-icon")) button.append(ui.icon(name, "icon state-icon"));
-    }
-
     if (currentTask.type === "choice" || currentTask.type === "hotkeys") {
       for (const button of currentSection.querySelectorAll("button[data-answer]")) {
         button.classList.add("is-disabled");
         button.disabled = true;
         if (button.dataset.answer === currentTask.answer) {
           button.classList.add("is-correct");
-          appendStateIcon(button, "check");
         } else if (!correct && button.dataset.answer === selectedAnswer) {
           button.classList.add("is-wrong");
-          appendStateIcon(button, "close");
         }
       }
     } else if (currentTask.type === "builder") {
       for (const button of currentSection.querySelectorAll("button[data-block-index]")) {
         button.classList.add("is-disabled");
         button.disabled = true;
-        if (correct) {
-          button.classList.add("is-correct");
-          appendStateIcon(button, "check");
-        } else {
-          button.classList.add("is-wrong");
-          appendStateIcon(button, "close");
-        }
       }
+      builderClearButton.disabled = true;
     }
   }
 
   function openFeedback(correct) {
-    if (currentTask.type === "builder") builderClearButton.disabled = true;
     markAnswerStates(correct);
+    if (currentTask.type === "builder") builderClearButton.disabled = true;
     successPanel.hidden = !correct;
     errorPanel.hidden = correct;
     hintText.hidden = true;
@@ -389,6 +410,9 @@
     continueButton.textContent = correct ? "Продолжить" : "Понятно";
     if (correct) successPanel.querySelector("span").textContent = praise[Math.floor(Math.random() * praise.length)];
     else errorExplanation.textContent = `Правильный ответ: ${answerText()}. ${currentTask.explain}`;
+    if (!correct && currentTask.type === "builder") {
+      currentSection.querySelector("#answer-zone").classList.add("is-wrong");
+    }
     feedback.hidden = false;
     feedback.classList.add("is-visible");
     checkButton.hidden = true;
@@ -404,16 +428,23 @@
     checkButton.hidden = currentTask?.type === "matching";
   }
 
-  function updateLives() {
-    livesCount.textContent = String(lives);
-    livesContainer.classList.remove("lives--hit");
+  function loseLifeAfterBreak() {
+    livesContainer.classList.remove("lives--break");
     void livesContainer.offsetWidth;
-    livesContainer.classList.add("lives--hit");
-    window.setTimeout(() => livesContainer.classList.remove("lives--hit"), 400);
-    if (lives <= 0) {
-      livesContainer.classList.add("lives--empty");
-      gameOver = true;
-    }
+    livesContainer.classList.add("lives--break");
+    pendingLifeLoss = new Promise((resolve) => {
+      window.setTimeout(() => {
+        livesContainer.classList.remove("lives--break");
+        lives = Math.max(0, lives - 1);
+        livesCount.textContent = String(lives);
+        if (lives === 0) {
+          livesContainer.classList.add("lives--empty");
+          gameOver = true;
+          showNoLivesModal();
+        }
+        resolve();
+      }, 400);
+    });
   }
 
   function recordWrong() {
@@ -425,18 +456,34 @@
     if (wrongForCurrent) return;
     wrongForCurrent = true;
     attemptsByTask.set(currentTask, (attemptsByTask.get(currentTask) || 0) + 1);
-    lives = Math.max(0, lives - 1);
-    updateLives();
+    loseLifeAfterBreak();
   }
 
   function showNoLivesModal() {
+    if (noLivesModalOpen) return;
+    noLivesModalOpen = true;
     ui.modal("Жизни закончились", "Можно начать урок заново или вернуться к карте.", [
       { label: "Начать заново", value: "restart", className: "btn btn--primary" },
       { label: "К карте уроков", value: "map", className: "btn btn--secondary" }
     ]).then((choice) => {
+      noLivesModalOpen = false;
       if (choice === "restart") startLesson();
       else if (choice === "map") window.location.href = "learn.html";
     });
+  }
+
+  function showXpPopup(amount) {
+    window.clearTimeout(xpPopupTimer);
+    lessonFooter.querySelector(".xp-popup")?.remove();
+    const popup = document.createElement("span");
+    popup.className = "xp-popup";
+    popup.setAttribute("aria-hidden", "true");
+    popup.textContent = `+${amount} XP`;
+    lessonFooter.append(popup);
+    xpPopupTimer = window.setTimeout(() => {
+      popup.remove();
+      xpPopupTimer = null;
+    }, 600);
   }
 
   function handleCorrect() {
@@ -449,9 +496,11 @@
       resultTest.correct += 1;
     } else {
       correctTasks += 1;
-      earnedXp += firstAttempt ? data.config.XP_FIRST_TRY : data.config.XP_RETRY;
-      setProgress(progress.value + 1);
+      const xp = firstAttempt ? data.config.XP_FIRST_TRY : data.config.XP_RETRY;
+      earnedXp += xp;
+      showXpPopup(xp);
     }
+    setProgress(progress.value + 1, true);
 
     queue.shift();
     openFeedback(true);
@@ -460,7 +509,6 @@
   function handleIncorrect() {
     if (!currentTask || feedback.classList.contains("is-visible")) return;
     recordWrong();
-    markAnswerStates(false);
 
     if (!isTest) {
       queue.shift();
@@ -473,7 +521,7 @@
   }
 
   function selectMatch(button) {
-    if (feedback.classList.contains("is-visible") || button.classList.contains("is-matched")) return;
+    if (gameOver || feedback.classList.contains("is-visible") || button.classList.contains("is-matched")) return;
     const side = button.dataset.matchSide;
     const index = button.dataset.pairIndex;
     if (side === "term") {
@@ -490,28 +538,27 @@
       termButton.classList.remove("is-selected");
       termButton.classList.add("is-matched", "is-disabled");
       button.classList.add("is-matched", "is-disabled");
-      termButton.append(ui.icon("check", "icon state-icon"));
-      button.append(ui.icon("check", "icon state-icon"));
+      termButton.classList.add("match-flash");
+      button.classList.add("match-flash");
       termButton.disabled = true;
       button.disabled = true;
       selectedTerm = null;
+      matchingCount.textContent = `Пар найдено ${matchedPairs.size} из ${currentTask.pairs.length}`;
       if (matchedPairs.size === currentTask.pairs.length) handleCorrect();
       return;
     }
 
     if (!wrongForCurrent) recordWrong();
+    termButton.classList.remove("is-selected");
     termButton.classList.add("is-wrong");
     button.classList.add("is-wrong");
-    termButton.append(ui.icon("close", "icon state-icon"));
-    button.append(ui.icon("close", "icon state-icon"));
     window.setTimeout(() => {
-      termButton.classList.remove("is-wrong", "is-selected");
+      termButton.classList.remove("is-wrong");
       button.classList.remove("is-wrong");
-      termButton.querySelector(".state-icon")?.remove();
-      button.querySelector(".state-icon")?.remove();
-    }, 400);
+    }, 200);
     selectedTerm = null;
   }
+
   function updateBuilderSelection() {
     const answerZone = currentSection.querySelector("#answer-zone");
     selectedBlocks = [...answerZone.querySelectorAll("[data-block-index]")]
@@ -555,7 +602,6 @@
       button.focus();
     }
   }
-
 
   function handleBuilderClick(event) {
     const button = event.target.closest("button[data-block-index]");
@@ -608,18 +654,31 @@
     else handleIncorrect();
   }
 
-  function continueTask() {
-    const wasError = !errorPanel.hidden;
-    hideFeedback();
-    if (gameOver) {
-      showNoLivesModal();
-      return;
+  async function continueTask() {
+    if (continuingTask || feedback.hidden || continueButton.hidden) return;
+    continuingTask = true;
+    continueButton.disabled = true;
+
+    try {
+      if (pendingLifeLoss) {
+        await pendingLifeLoss;
+        pendingLifeLoss = null;
+      }
+      const wasError = !errorPanel.hidden;
+      hideFeedback();
+      if (gameOver) {
+        showNoLivesModal();
+        return;
+      }
+      if (wasError && !isTest && currentTask.type === "matching") {
+        return;
+      }
+      if (isTest) testIndex += 1;
+      renderNext();
+    } finally {
+      continuingTask = false;
+      continueButton.disabled = false;
     }
-    if (wasError && !isTest && currentTask.type === "matching") {
-      return;
-    }
-    if (isTest) testIndex += 1;
-    renderNext();
   }
 
   function resetSession(tasks, testMode = false, preserveLessonResult = false) {
@@ -641,18 +700,26 @@
     attemptCount = 0;
     lives = data.config.LIVES;
     gameOver = false;
+    noLivesModalOpen = false;
     testIndex = 0;
     resultLesson = preserveLessonResult ? previousLessonResult : { correct: 0, total: 0, xp: 0 };
     resultTest = testMode ? { correct: 0, total: tasks.length, passed: false } : null;
     startedAt = preserveLessonResult ? previousStartTime : Date.now();
     livesCount.textContent = String(lives);
     livesContainer.hidden = testMode;
-    livesContainer.classList.remove("lives--empty", "lives--hit");
+    livesContainer.classList.remove("lives--empty", "lives--hit", "lives--break");
+    window.clearTimeout(progressPulseTimer);
+    progressPulseTimer = null;
+    progressContainer.classList.remove("progress--pulse");
+    window.clearTimeout(xpPopupTimer);
+    xpPopupTimer = null;
+    lessonFooter.querySelector(".xp-popup")?.remove();
     testBadge.hidden = !testMode;
     setScreen(testMode ? "test" : "tasks");
     progress.max = tasks.length;
     progress.value = 0;
     progress.setAttribute("aria-valuemax", String(tasks.length));
+    progressContainer.classList.remove("progress--pulse");
     setProgress(0);
     feedback.hidden = true;
     feedback.classList.remove("is-visible");
@@ -797,6 +864,7 @@
     hintButton.textContent = visible ? "Подсказка" : "Скрыть подсказку";
     hintButton.setAttribute("aria-expanded", String(!visible));
   });
+  document.querySelector(".lesson__block-bank").closest("[data-task-template]").addEventListener("click", handleBuilderClick);
   builderClearButton.addEventListener("click", () => {
     if (gameOver || currentTask?.type !== "builder" || feedback.classList.contains("is-visible")) return;
     const answerZone = currentSection.querySelector("#answer-zone");
@@ -815,7 +883,6 @@
     if (firstBankBlock) moveBuilderFocus(firstBankBlock);
     else builderClearButton.focus();
   });
-  document.querySelector(".lesson__block-bank").closest("[data-task-template]").addEventListener("click", handleBuilderClick);
   document.querySelector("#exit-btn").addEventListener("click", (event) => {
     event.preventDefault();
     requestExit();
@@ -852,8 +919,10 @@
       }
     }
 
-    if (!isTest && currentTask && (currentTask.type === "choice" || currentTask.type === "hotkeys") && /^[1-4]$/.test(event.key)) {
+    if (currentTask && (currentTask.type === "choice" || currentTask.type === "hotkeys") && /^[1-4]$/.test(event.key)
+      && !event.target.closest("input, textarea, select, [contenteditable='true']")) {
       const options = [...currentSection.querySelectorAll("button[data-answer]")];
+      event.preventDefault();
       options[Number(event.key) - 1]?.click();
     }
   });

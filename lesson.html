@@ -49,7 +49,10 @@
     <form action="learn.html">
       <button type="submit" id="exit-btn" aria-label="Выйти из урока"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-close"></use></svg></button>
     </form>
-    <progress id="lesson-progress" value="0" max="10" role="progressbar" aria-valuemin="0" aria-valuemax="10" aria-valuenow="0">0 из 10</progress>
+    <div class="lesson-progress">
+      <progress id="lesson-progress" value="0" max="10" role="progressbar" aria-valuemin="0" aria-valuemax="10" aria-valuenow="0">0 из 10</progress>
+      <span class="lesson-progress__glint" aria-hidden="true"></span>
+    </div>
     <p class="lives"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-heart"></use></svg><span id="lives">5</span></p>
   </div>
 
@@ -133,6 +136,7 @@
 
     <section hidden data-task-template="matching" aria-label="Шаблон сопоставления терминов">
       <h2>Сопоставь термины и определения</h2>
+      <p class="matching-count" data-matching-count aria-live="polite">Пар найдено 0 из 4</p>
       <div class="lesson__matching-column" aria-label="Термины">
         <button type="button" data-match="terminal">Терминал</button>
         <button type="button" data-match="file">Файл</button>

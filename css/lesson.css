@@ -1,11 +1,8 @@
 .page-lesson {
-  display: grid;
+  display: block;
   width: 100%;
-  height: 100vh;
-  height: 100dvh;
-  min-height: 480px;
-  grid-template-rows: auto minmax(0, 1fr) auto;
-  overflow: hidden;
+  min-height: 100vh;
+  min-height: 100dvh;
 }
 
 .lesson__topbar {
@@ -14,7 +11,7 @@
   align-items: center;
   gap: 0.75rem;
   padding: 0.75rem 1rem;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid color-mix(in srgb, var(--lesson-accent, var(--border)) 30%, var(--border));
   background: var(--card);
 }
 
@@ -37,20 +34,44 @@
   line-height: 0;
 }
 
+.lesson-progress {
+  position: relative;
+  min-width: 0;
+}
+
 .lesson__topbar progress {
   min-width: 0;
+}
+
+.lesson-progress__glint {
+  position: absolute;
+  top: 0;
+  left: calc(var(--progress-position, 0%) - 0.75rem);
+  width: 1.5rem;
+  height: 100%;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(90deg, transparent, var(--progress-glint), transparent);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.progress--pulse .lesson-progress__glint {
+  animation: progress-pulse 500ms ease-out;
+}
+
+@keyframes progress-pulse {
+  35% { opacity: 1; }
+  100% { opacity: 0; }
 }
 
 .lesson__body {
   display: flex;
   width: min(100%, 720px);
-  min-height: 0;
   flex-direction: column;
   gap: 1.5rem;
   margin-inline: auto;
   padding: 1.5rem 1rem;
-  overflow-y: auto;
-  overscroll-behavior: contain;
+  overflow: visible;
 }
 
 .lesson-progress-nav {
@@ -144,6 +165,21 @@
   gap: 0.75rem;
 }
 
+.lesson-screen__actions #start-lesson-btn {
+  border-color: var(--lesson-accent);
+  background: var(--lesson-accent);
+  color: #000000;
+  box-shadow: 0 4px 0 var(--lesson-accent);
+}
+
+.lesson-screen__actions #start-lesson-btn:hover:not(:disabled):not([aria-disabled="true"]) {
+  box-shadow: 0 6px 0 var(--lesson-accent);
+}
+
+.lesson-screen__actions #start-lesson-btn:active:not(:disabled):not([aria-disabled="true"]) {
+  box-shadow: 0 0 0 var(--lesson-accent);
+}
+
 .theory-card {
   display: grid;
   align-content: start;
@@ -216,7 +252,6 @@
 }
 
 #task-area {
-  min-height: 180px;
   padding: 1.25rem;
   border: 2px solid var(--border);
   border-radius: var(--radius-lg);
@@ -248,6 +283,7 @@
 }
 
 .choice-card {
+  position: relative;
   display: grid;
   min-height: 112px;
   place-items: center;
@@ -260,6 +296,48 @@
   font-size: 1.15rem;
   font-weight: 800;
   transition: transform var(--time-fast), box-shadow var(--time-fast), background-color var(--time-theme), color var(--time-theme), border-color var(--time-theme);
+}
+
+.choice-shortcut {
+  position: absolute;
+  top: 0.55rem;
+  right: 0.55rem;
+}
+
+.page-lesson .is-selected {
+  border-color: var(--lesson-accent) !important;
+  background-color: var(--brand-soft) !important;
+}
+
+.page-lesson .choice-card.is-correct,
+.page-lesson .choice-card.is-wrong,
+.page-lesson .match-option.is-wrong {
+  animation: shake 200ms ease-in-out;
+}
+
+.page-lesson .choice-card.is-correct::before,
+.page-lesson .choice-card.is-wrong::before,
+.page-lesson .match-option.is-wrong::before {
+  position: absolute;
+  left: 0.8rem;
+  font-size: 1.25rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.page-lesson .choice-card.is-correct::before {
+  color: var(--success-ink);
+  content: "✓";
+}
+
+.page-lesson .choice-card.is-wrong::before,
+.page-lesson .match-option.is-wrong::before {
+  color: var(--error-ink);
+  content: "×";
+}
+
+.page-lesson .choice-card.is-correct {
+  animation: none;
 }
 
 .choice-card:hover {
@@ -292,6 +370,13 @@
   background-position: 0 calc(100% - 0.75rem);
   background-size: 8px 1px;
 }
+
+#answer-zone.is-wrong {
+  animation: shake 200ms ease-in-out;
+  border-color: var(--error);
+  background-color: var(--error-bg);
+}
+
 [data-builder-hint] {
   width: 100%;
   margin: 0;
@@ -302,7 +387,6 @@
 .lesson__block-bank + [data-builder-clear] {
   justify-self: start;
 }
-
 
 .lesson__block-bank {
   display: flex;
@@ -368,6 +452,12 @@
   grid-column: 1 / -1;
 }
 
+.matching-count {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--text-muted);
+}
+
 .lesson__matching-column {
   display: grid;
   grid-auto-rows: minmax(58px, 1fr);
@@ -377,6 +467,7 @@
 }
 
 .lesson__matching-column button {
+  position: relative;
   min-width: 0;
   min-height: 58px;
   padding: 0.45rem;
@@ -388,6 +479,40 @@
   font-weight: 800;
   line-height: 1.3;
   overflow-wrap: anywhere;
+}
+
+.lesson__matching-column button.is-matched {
+  border-color: var(--success);
+  background-color: var(--success-bg);
+  color: var(--success-ink);
+}
+
+.lesson__matching-column button.is-matched::before {
+  position: absolute;
+  right: 0.55rem;
+  color: var(--success-ink);
+  content: "✓";
+  font-size: 1.1rem;
+  font-weight: 900;
+}
+
+.lesson__matching-column button.match-flash {
+  animation: match-flash 220ms ease-out;
+}
+
+@keyframes match-flash {
+  45% { background-color: var(--success-bg-light); }
+}
+
+.lives--break .icon {
+  color: var(--error-ink);
+  animation: heart-break 400ms ease-in-out;
+}
+
+@keyframes heart-break {
+  20% { transform: rotate(-18deg) scale(0.82); }
+  45% { transform: rotate(16deg) scale(0.68); }
+  70% { transform: rotate(-10deg) scale(0.78); }
 }
 
 .lesson__footer {
@@ -406,6 +531,30 @@
 
 #check-btn {
   width: 100%;
+}
+
+#check-btn:not(:disabled):not([aria-disabled="true"]) {
+  border-color: color-mix(in srgb, var(--lesson-accent) 70%, #000);
+  background: color-mix(in srgb, var(--lesson-accent) 70%, #000);
+  color: #fff;
+}
+
+.xp-popup {
+  position: absolute;
+  right: max(1rem, calc((100vw - 720px) / 2));
+  bottom: calc(100% + 0.25rem);
+  z-index: 6;
+  color: var(--success-ink);
+  font-size: 1.1rem;
+  font-weight: 900;
+  pointer-events: none;
+  animation: xp-rise 600ms ease-out forwards;
+}
+
+@keyframes xp-rise {
+  from { opacity: 0; transform: translateY(0); }
+  20% { opacity: 1; }
+  to { opacity: 0; transform: translateY(-24px); }
 }
 
 #feedback {
@@ -452,5 +601,22 @@
 
   #feedback {
     padding-inline: 0.9rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .progress--pulse .lesson-progress__glint,
+  .page-lesson .choice-card.is-wrong,
+  #answer-zone.is-wrong,
+  .lesson__matching-column button.match-flash,
+  .lesson__matching-column button.is-wrong,
+  .lives--break .icon,
+  .xp-popup {
+    animation: none !important;
+  }
+
+  .lives--break .icon,
+  .xp-popup {
+    transform: none !important;
   }
 }
