@@ -42,6 +42,8 @@
     const card = level.card;
     const unlocked = xp >= level.xp;
     card.dataset.locked = String(!unlocked);
+    if (level === current) card.setAttribute("aria-current", "step");
+    else card.removeAttribute("aria-current");
     const lock = card.querySelector(".pet-level__lock");
     if (lock) lock.hidden = unlocked;
   }
