@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>GitLingo - микрообучение</title>
   <meta name="application-name" content="GitLingo">
+  <link rel="preload" as="image" href="assets/images/home-hero-light.webp" fetchpriority="high">
+  <link rel="preload" as="image" href="assets/images/home-hero-dark.webp" fetchpriority="high">
   <script>
     try {
       const storedTheme = localStorage.getItem("mega-theme");
@@ -46,6 +48,10 @@
     <symbol id="icon-keyboard" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="M6 9h.01M9 9h.01M12 9h.01M15 9h.01M18 9h.01M6 12h.01M9 12h.01M12 12h.01M15 12h.01M18 12h.01M8 15h8"/></symbol>
     <symbol id="icon-swap" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h15m-4-4 4 4-4 4M20 17H5m4 4-4-4 4-4"/></symbol>
   </svg>
+  <div class="home-background" aria-hidden="true">
+    <img class="home-background__image home-background__image--light" src="assets/images/home-hero-light.webp" alt="" fetchpriority="high" decoding="async">
+    <img class="home-background__image home-background__image--dark" src="assets/images/home-hero-dark.webp" alt="" fetchpriority="high" decoding="async">
+  </div>
   <header class="site-header">
     <a class="site-header__logo" href="index.html" data-home-link><span>Git</span><span class="site-header__accent">Lingo</span></a>
     <nav class="site-header__nav" aria-label="Основная навигация">
@@ -68,8 +74,8 @@
       <h1 id="hero-title">GitLingo</h1>
       <p>Короткие уроки помогут освоить новые навыки в удобном темпе.</p>
       <p>
-        <a class="btn btn--primary" href="learn.html" data-primary-link>Начать обучение</a>
-        <a class="btn btn--secondary" href="pet.html" data-secondary-link>Узнать о питомце</a>
+        <a class="btn btn--primary" href="learn.html" data-primary-link><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#icon-command"></use></svg><span>Начать обучение</span></a>
+        <a class="btn btn--secondary" href="pet.html" data-secondary-link><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#icon-shark"></use></svg><span>Узнать о питомце</span></a>
       </p>
     </section>
 

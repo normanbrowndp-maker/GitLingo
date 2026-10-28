@@ -508,31 +508,11 @@ html.theme-transition,
 html.theme-transition *,
 html.theme-transition *::before,
 html.theme-transition *::after {
-  transition: background-color 0.35s ease, color 0.35s ease, border-color 0.35s ease, box-shadow 0.35s ease, fill 0.35s ease, stroke 0.35s ease !important;
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, fill 0.2s ease, stroke 0.2s ease !important;
 }
 
 html.theme-transition .theme-toggle__icon {
   transition: opacity var(--time-icon) cubic-bezier(0.4, 0, 0.2, 1), transform var(--time-icon) cubic-bezier(0.4, 0, 0.2, 1) !important;
-}
-
-@keyframes theme-reveal {
-  to { clip-path: circle(var(--theme-radius) at var(--theme-x) var(--theme-y)); }
-}
-
-::view-transition-old(root),
-::view-transition-new(root) {
-  animation-duration: 0.45s;
-  animation-timing-function: ease;
-}
-
-::view-transition-old(root) {
-  animation: none;
-  z-index: 1;
-}
-
-::view-transition-new(root) {
-  animation-name: theme-reveal;
-  clip-path: circle(0 at var(--theme-x) var(--theme-y));
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -563,8 +543,4 @@ html.theme-transition .theme-toggle__icon {
     transform: none !important;
   }
 
-  ::view-transition-old(root),
-  ::view-transition-new(root) {
-    animation: none;
-  }
 }
