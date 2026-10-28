@@ -14,6 +14,7 @@ window.MEGA = window.MEGA || {};
   let client = null;
   let subscription = null;
   let operationInProgress = false;
+  let progressSaveInProgress = false;
   let recoveryMarkerWasSet = false;
   let state = {
     ready: false,
@@ -264,6 +265,84 @@ window.MEGA = window.MEGA || {};
     return state.status === "authenticated" && !state.recovery && state.userId === userId;
   }
 
+  async function currentProgressOwner() {
+    const owner = currentProfileOwner();
+    if (!owner.ok) return owner;
+    try {
+      const { data, error } = await client.auth.getSession();
+      if (error) return { ok: false, reason: classifyError(error, "progress") };
+      const sessionUserId = data && data.session && data.session.user && data.session.user.id;
+      if (sessionUserId !== owner.userId || !isCurrentProfileOwner(owner.userId)) {
+        return { ok: false, reason: "stale-session" };
+      }
+      return owner;
+    } catch (error) {
+      return { ok: false, reason: classifyError(error, "progress") };
+    }
+  }
+
+  function classifyProgressError(error) {
+    if (String(error && error.code || "") === "23505") return "primary-conflict";
+    return classifyError(error, "progress");
+  }
+
+  async function getUserProgress() {
+    const owner = await currentProgressOwner();
+    if (!owner.ok) return owner;
+    try {
+      const { data, error } = await client
+        .from("user_progress")
+        .select("user_id,state,schema_version,revision,updated_at")
+        .eq("user_id", owner.userId)
+        .maybeSingle();
+      if (error) return { ok: false, reason: classifyProgressError(error) };
+      if (!isCurrentProfileOwner(owner.userId)) return { ok: false, reason: "stale-session" };
+      return { ok: true, row: data };
+    } catch (error) {
+      return { ok: false, reason: classifyProgressError(error) };
+    }
+  }
+
+  async function saveUserProgress(snapshot, schemaVersion, expectedRevision, expectedFingerprint) {
+    if (progressSaveInProgress) return { ok: false, reason: "busy" };
+    progressSaveInProgress = true;
+    try {
+      const inspected = window.MEGA.state && window.MEGA.state.inspectCloudSnapshot(snapshot, schemaVersion);
+      if (!inspected || !inspected.ok) return { ok: false, reason: "invalid-local-state" };
+      const owner = await currentProgressOwner();
+      if (!owner.ok) return owner;
+      const latestLocal = window.MEGA.state.getCloudSnapshot();
+      if (!latestLocal.ok) return { ok: false, reason: "invalid-local-state" };
+      if (typeof expectedFingerprint === "string" && latestLocal.fingerprint !== expectedFingerprint) {
+        return { ok: false, reason: "local-changed" };
+      }
+
+      let query = client.from("user_progress");
+      if (expectedRevision === null) {
+        query = query.insert({ user_id: owner.userId, state: inspected.state, schema_version: schemaVersion });
+      } else {
+        const validRevision = (Number.isSafeInteger(expectedRevision) && expectedRevision > 0)
+          || (typeof expectedRevision === "string" && /^[1-9][0-9]*$/.test(expectedRevision));
+        if (!validRevision) return { ok: false, reason: "invalid-cloud-state" };
+        query = query.update({ state: inspected.state, schema_version: schemaVersion })
+          .eq("user_id", owner.userId)
+          .eq("revision", expectedRevision);
+      }
+
+      const { data, error } = await query
+        .select("user_id,state,schema_version,revision,updated_at")
+        .maybeSingle();
+      if (error) return { ok: false, reason: classifyProgressError(error) };
+      if (!isCurrentProfileOwner(owner.userId)) return { ok: false, reason: "stale-session" };
+      if (!data) return { ok: false, reason: "conflict" };
+      return { ok: true, row: data };
+    } catch (error) {
+      return { ok: false, reason: classifyProgressError(error) };
+    } finally {
+      progressSaveInProgress = false;
+    }
+  }
+
   async function loadProfileFor(userId) {
     try {
       const { data, error } = await client
@@ -393,6 +472,8 @@ window.MEGA = window.MEGA || {};
     getProfile,
     createProfile,
     updateProfile,
+    getUserProgress,
+    saveUserProgress,
     getAvailability() {
       if (window.location.protocol !== "http:" && window.location.protocol !== "https:") return "local-server-required";
       if (state.connection === "unconfigured") return "unconfigured";

@@ -178,6 +178,92 @@
   border-top: 1px solid var(--border);
 }
 
+.auth-cloud {
+  display: grid;
+  min-width: 0;
+  gap: 0.7rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--border);
+}
+
+.auth-cloud h2,
+.auth-cloud h3 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.auth-cloud h3 {
+  font-size: 1.05rem;
+}
+
+.auth-cloud-account,
+.auth-cloud-confirm {
+  display: grid;
+  min-width: 0;
+  gap: 0.65rem;
+}
+
+.auth-cloud-summary {
+  display: grid;
+  min-width: 0;
+  gap: 0.45rem;
+  margin: 0;
+}
+
+.auth-cloud-summary > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.auth-cloud-summary dt {
+  color: var(--text-muted);
+}
+
+.auth-cloud-summary dd {
+  margin: 0;
+  font-weight: 800;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.auth-cloud-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.auth-cloud-actions .btn {
+  min-height: 44px;
+  min-width: 0;
+  flex: 1 1 180px;
+  padding-inline: 0.7rem;
+  font-size: 0.86rem;
+}
+
+.auth-cloud-confirm {
+  padding: 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+  overflow-wrap: anywhere;
+}
+
+.auth-cloud-confirm p,
+.auth-cloud-guest {
+  margin: 0;
+}
+
+.auth-cloud-warning {
+  color: var(--error-ink);
+  font-weight: 800;
+}
+
+[data-cloud-panel] button:focus-visible {
+  outline: 3px solid var(--brand);
+  outline-offset: 2px;
+}
+
 .auth-profile h2 {
   margin: 0;
   font-size: 1.2rem;

@@ -20,6 +20,22 @@ window.MEGA = window.MEGA || {};
   const profileEditButton = document.querySelector("[data-profile-edit]");
   const profileCancelButton = document.querySelector("[data-profile-cancel]");
   const profileRetryButton = document.querySelector("[data-profile-retry]");
+  const cloudPanel = document.querySelector("[data-cloud-panel]");
+  const cloudGuest = document.querySelector("[data-cloud-guest]");
+  const cloudAccount = document.querySelector("[data-cloud-account]");
+  const cloudStatus = document.querySelector("[data-cloud-status]");
+  const cloudSummary = document.querySelector("[data-cloud-summary]");
+  const cloudDate = document.querySelector("[data-cloud-date]");
+  const cloudXp = document.querySelector("[data-cloud-xp]");
+  const cloudLessons = document.querySelector("[data-cloud-lessons]");
+  const cloudCheckButton = document.querySelector("[data-cloud-check]");
+  const cloudSaveButton = document.querySelector("[data-cloud-save]");
+  const cloudConfirm = document.querySelector("[data-cloud-confirm]");
+  const cloudConfirmAccount = document.querySelector("[data-cloud-confirm-account]");
+  const cloudConfirmLocal = document.querySelector("[data-cloud-confirm-local]");
+  const cloudConfirmRemote = document.querySelector("[data-cloud-confirm-remote]");
+  const cloudConfirmSaveButton = document.querySelector("[data-cloud-confirm-save]");
+  const cloudCancelButton = document.querySelector("[data-cloud-cancel]");
   const views = [initializingView, unavailableView, guestView, accountView, recoveryView];
   let guestMessage = "";
   let guestMessageIsError = false;
@@ -30,6 +46,14 @@ window.MEGA = window.MEGA || {};
   let profileGeneration = 0;
   let savedDisplayName = null;
   let profileSaving = false;
+  let cloudOwnerId = null;
+  let cloudGeneration = 0;
+  let cloudRequestId = 0;
+  let cloudRow = null;
+  let cloudRowState = null;
+  let cloudRowKind = "unchecked";
+  let cloudComparison = null;
+  let cloudBusy = false;
 
   function setVisibleView(targetView) {
     for (const view of views) {
@@ -119,6 +143,244 @@ window.MEGA = window.MEGA || {};
     setProfileMessage("");
   }
 
+  function cloudContextIsCurrent(userId, generation) {
+    const current = auth.getState();
+    return cloudOwnerId === userId && cloudGeneration === generation
+      && current.ready && current.status === "authenticated" && !current.recovery
+      && current.userId === userId;
+  }
+
+  function setCloudStatus(message, isError = false) {
+    setMessage(cloudStatus, message, isError);
+  }
+
+  function clearCloudView() {
+    cloudRequestId += 1;
+    cloudRow = null;
+    cloudRowState = null;
+    cloudRowKind = "unchecked";
+    cloudComparison = null;
+    cloudBusy = false;
+    cloudSummary.hidden = true;
+    cloudConfirm.hidden = true;
+    cloudCheckButton.disabled = false;
+    cloudSaveButton.disabled = false;
+    cloudConfirmSaveButton.disabled = false;
+    cloudCancelButton.disabled = false;
+    cloudAccount.removeAttribute("aria-busy");
+    setCloudStatus("");
+  }
+
+  function renderCloudAccess(state) {
+    const ready = Boolean(state && state.ready);
+    const recovery = state && state.status === "authenticated" && state.recovery;
+    cloudPanel.hidden = !ready || Boolean(recovery);
+    const isAccount = ready && state.status === "authenticated" && !state.recovery;
+    cloudGuest.hidden = isAccount;
+    cloudAccount.hidden = !isAccount;
+  }
+
+  function setCloudBusy(busy) {
+    cloudBusy = busy;
+    cloudCheckButton.disabled = busy;
+    cloudSaveButton.disabled = busy;
+    cloudConfirmSaveButton.disabled = busy;
+    cloudCancelButton.disabled = busy;
+    cloudAccount.setAttribute("aria-busy", String(busy));
+  }
+
+  function validRevision(value) {
+    return (Number.isSafeInteger(value) && value > 0)
+      || (typeof value === "string" && /^[1-9][0-9]*$/.test(value));
+  }
+
+  function inspectCloudRow(row, userId) {
+    if (!row || row.user_id !== userId || !validRevision(row.revision)
+      || !Number.isInteger(row.schema_version) || typeof row.updated_at !== "string"
+      || !Number.isFinite(Date.parse(row.updated_at))) return null;
+    const inspected = window.MEGA.state.inspectCloudSnapshot(row.state, row.schema_version);
+    return inspected.ok ? { state: inspected.state, revision: row.revision } : null;
+  }
+
+  function progressSummary(state) {
+    const completed = Object.values(state.lessons).filter((lesson) => lesson.completed).length;
+    return `${state.xp} XP, завершено уроков: ${completed}`;
+  }
+
+  function renderCloudRow(userId) {
+    if (cloudRowKind === "missing") {
+      cloudSummary.hidden = true;
+      setCloudStatus("Облачной копии пока нет.");
+      return;
+    }
+    if (cloudRowKind === "unsupported") {
+      cloudSummary.hidden = true;
+      setCloudStatus("Неподдерживаемый формат облачной копии.", true);
+      return;
+    }
+    if (cloudRowKind !== "found" || !cloudRow || !cloudRowState) {
+      cloudSummary.hidden = true;
+      return;
+    }
+    cloudSummary.hidden = false;
+    cloudDate.textContent = new Intl.DateTimeFormat("ru", { dateStyle: "medium", timeStyle: "short" }).format(new Date(cloudRow.updated_at));
+    cloudXp.textContent = `${cloudRowState.xp} XP`;
+    cloudLessons.textContent = `${Object.values(cloudRowState.lessons).filter((lesson) => lesson.completed).length}`;
+    setCloudStatus("Облачная копия найдена.");
+  }
+
+  function cloudErrorMessage(reason) {
+    if (reason === "network") return "Не удалось связаться с сервисом. Проверьте подключение и повторите проверку вручную.";
+    if (reason === "not-authenticated" || reason === "stale-session") return "Сеанс аккаунта изменился. Откройте раздел снова.";
+    if (reason === "busy") return "Сохранение уже выполняется. Подождите его завершения.";
+    return "Не удалось проверить или сохранить копию. Проверьте подключение и доступ аккаунта.";
+  }
+
+  async function checkCloudCopy(userId, generation, options = {}) {
+    if (!cloudContextIsCurrent(userId, generation) || cloudBusy) return false;
+    const requestId = ++cloudRequestId;
+    setCloudBusy(true);
+    setCloudStatus("Проверяем облачную копию…");
+    try {
+      const result = await auth.getUserProgress();
+      if (!cloudContextIsCurrent(userId, generation) || requestId !== cloudRequestId) return false;
+      if (!result.ok) {
+        cloudRowKind = "error";
+        cloudRow = null;
+        cloudRowState = null;
+        cloudComparison = null;
+        cloudSummary.hidden = true;
+        cloudConfirm.hidden = true;
+        setCloudStatus(cloudErrorMessage(result.reason), true);
+        return false;
+      }
+      cloudRow = result.row;
+      if (!cloudRow) {
+        cloudRowKind = "missing";
+        cloudRowState = null;
+      } else {
+        const inspected = inspectCloudRow(cloudRow, userId);
+        cloudRowKind = inspected ? "found" : "unsupported";
+        cloudRowState = inspected ? inspected.state : null;
+      }
+      renderCloudRow(userId);
+      if (options.prepareConfirmation) return prepareCloudConfirmation(userId, generation);
+      return true;
+    } catch {
+      if (cloudContextIsCurrent(userId, generation) && requestId === cloudRequestId) {
+        cloudRowKind = "error";
+        cloudComparison = null;
+        cloudConfirm.hidden = true;
+        setCloudStatus("Не удалось проверить облачную копию. Проверьте подключение и повторите попытку.", true);
+      }
+      return false;
+    } finally {
+      if (cloudContextIsCurrent(userId, generation) && requestId === cloudRequestId) setCloudBusy(false);
+    }
+  }
+
+  function showCloudConfirmation(userId, snapshot) {
+    cloudComparison = { userId, snapshot };
+    cloudConfirmAccount.textContent = `Аккаунт: ${auth.getState().email || userId}`;
+    cloudConfirmLocal.textContent = `Локальный снимок: ${progressSummary(snapshot.state)}.`;
+    cloudConfirmRemote.textContent = cloudRowKind === "found"
+      ? `Текущая облачная копия: ${progressSummary(cloudRowState)}.`
+      : "Текущая облачная копия: отсутствует. Это будет первая запись общего прогресса браузера.";
+    cloudConfirm.hidden = false;
+  }
+
+  async function prepareCloudConfirmation(userId, generation) {
+    if (!cloudContextIsCurrent(userId, generation)) return false;
+    if (cloudRowKind === "unsupported" || cloudRowKind === "error") return false;
+    const local = window.MEGA.state.getCloudSnapshot();
+    if (!local.ok) {
+      cloudComparison = null;
+      cloudConfirm.hidden = true;
+      setCloudStatus("Локальный прогресс недоступен или повреждён. Отправка запрещена.", true);
+      return false;
+    }
+    showCloudConfirmation(userId, local);
+    setCloudStatus("Сравнение готово. Подтвердите сохранение, чтобы отправить снимок.");
+    return true;
+  }
+
+  async function startCloudSave(userId, generation) {
+    if (cloudBusy || !cloudComparison || !cloudContextIsCurrent(userId, generation)) return;
+    setCloudBusy(true);
+    const currentLocal = window.MEGA.state.getCloudSnapshot();
+    if (!currentLocal.ok) {
+      cloudConfirm.hidden = true;
+      cloudComparison = null;
+      setCloudBusy(false);
+      setCloudStatus("Локальный прогресс недоступен или повреждён. Отправка запрещена.", true);
+      return;
+    }
+    if (currentLocal.fingerprint !== cloudComparison.snapshot.fingerprint) {
+      showCloudConfirmation(userId, currentLocal);
+      setCloudBusy(false);
+      setCloudStatus("Локальный прогресс изменился. Сверьте обновлённое сравнение и подтвердите заново.");
+      return;
+    }
+
+    const comparison = cloudComparison;
+    const expectedRevision = cloudRowKind === "found" ? cloudRow.revision : null;
+    setCloudStatus("Сохраняем копию…");
+    try {
+      const result = await auth.saveUserProgress(comparison.snapshot.state, comparison.snapshot.schemaVersion, expectedRevision, comparison.snapshot.fingerprint);
+      if (!cloudContextIsCurrent(userId, generation)) return;
+      if (result.ok) {
+        cloudRow = result.row;
+        const inspected = inspectCloudRow(cloudRow, userId);
+        cloudRowKind = inspected ? "found" : "unsupported";
+        cloudRowState = inspected ? inspected.state : null;
+        cloudComparison = null;
+        cloudConfirm.hidden = true;
+        renderCloudRow(userId);
+        const latestLocal = window.MEGA.state.getCloudSnapshot();
+        setCloudStatus(latestLocal.ok && latestLocal.fingerprint !== comparison.snapshot.fingerprint
+          ? "Копия сохранена, но есть более новые локальные изменения."
+          : "Копия сохранена на сервере.");
+        return;
+      }
+      if (result.reason === "conflict" || result.reason === "primary-conflict") {
+        cloudComparison = null;
+        cloudConfirm.hidden = true;
+        setCloudStatus("Облачная копия изменилась в другом окне. Загружаем новое сравнение…");
+        setCloudBusy(false);
+        await checkCloudCopy(userId, generation, { prepareConfirmation: true });
+        if (cloudContextIsCurrent(userId, generation) && cloudComparison) {
+          setCloudStatus("Сверьте новое сравнение и подтвердите сохранение ещё раз.");
+        }
+        return;
+      }
+      if (result.reason === "local-changed") {
+        const latestLocal = window.MEGA.state.getCloudSnapshot();
+        if (latestLocal.ok) showCloudConfirmation(userId, latestLocal);
+        else {
+          cloudComparison = null;
+          cloudConfirm.hidden = true;
+        }
+        setCloudStatus(latestLocal.ok
+          ? "Локальный прогресс изменился. Сверьте обновлённое сравнение и подтвердите заново."
+          : "Локальный прогресс недоступен или повреждён. Отправка запрещена.", !latestLocal.ok);
+        return;
+      }
+      setCloudStatus(result.reason === "invalid-local-state"
+        ? "Локальный прогресс недоступен или повреждён. Отправка запрещена."
+        : cloudErrorMessage(result.reason), true);
+    } catch {
+      if (cloudContextIsCurrent(userId, generation)) setCloudStatus("Не удалось сохранить копию. Проверьте подключение; серверный результат неизвестен.", true);
+    } finally {
+      if (cloudContextIsCurrent(userId, generation)) setCloudBusy(false);
+    }
+  }
+
+  function initializeCloudForUser(userId, generation) {
+    if (!userId || !cloudContextIsCurrent(userId, generation)) return;
+    setCloudStatus("Проверяем облачную копию…");
+    window.setTimeout(() => checkCloudCopy(userId, generation), 0);
+  }
+
   function profileContextIsCurrent(userId, generation) {
     const current = auth.getState();
     return profileGeneration === generation
@@ -190,6 +452,16 @@ window.MEGA = window.MEGA || {};
 
   function onAuthState(state) {
     render(state);
+    renderCloudAccess(state);
+    const cloudUserId = state && state.ready && state.status === "authenticated" && !state.recovery
+      ? state.userId
+      : "";
+    if (cloudUserId !== cloudOwnerId) {
+      cloudGeneration += 1;
+      cloudOwnerId = cloudUserId || null;
+      clearCloudView();
+      if (cloudUserId) initializeCloudForUser(cloudUserId, cloudGeneration);
+    }
     const userId = state && state.ready && state.status === "authenticated" && !state.recovery
       ? state.userId
       : "";
@@ -373,6 +645,28 @@ window.MEGA = window.MEGA || {};
   });
 
   profileRetryButton.addEventListener("click", retryProfileLoad);
+
+  cloudCheckButton.addEventListener("click", () => {
+    const userId = cloudOwnerId;
+    if (userId) checkCloudCopy(userId, cloudGeneration);
+  });
+
+  cloudSaveButton.addEventListener("click", () => {
+    const userId = cloudOwnerId;
+    if (userId) checkCloudCopy(userId, cloudGeneration, { prepareConfirmation: true });
+  });
+
+  cloudConfirmSaveButton.addEventListener("click", () => {
+    const userId = cloudOwnerId;
+    if (userId) startCloudSave(userId, cloudGeneration);
+  });
+
+  cloudCancelButton.addEventListener("click", () => {
+    if (cloudBusy) return;
+    cloudComparison = null;
+    cloudConfirm.hidden = true;
+    setCloudStatus("Сохранение отменено.");
+  });
 
   profileForm.addEventListener("submit", async (event) => {
     event.preventDefault();

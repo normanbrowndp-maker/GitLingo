@@ -6,6 +6,8 @@
   <title>Аккаунт — GitLingo</title>
   <meta name="application-name" content="GitLingo">
   <script>
+    window.MEGA = window.MEGA || {};
+    window.MEGA.deferStorageMigration = true;
     try {
       const storedTheme = localStorage.getItem("mega-theme");
       const savedTheme = storedTheme === "light" || storedTheme === "dark" ? storedTheme : null;
@@ -20,6 +22,7 @@
   <link rel="stylesheet" href="css/pages.css">
   <link rel="stylesheet" href="css/auth.css">
   <script src="js/theme.js" defer></script>
+  <script src="js/storage.js" defer></script>
   <script src="assets/vendor/supabase-js-2.118.0.js" defer></script>
   <script src="js/supabase-config.js" defer></script>
   <script src="js/auth.js" defer></script>
@@ -144,6 +147,35 @@
           </form>
         </section>
         <button type="button" class="btn btn--secondary auth-submit" data-auth-sign-out>Выйти</button>
+      </section>
+
+      <section class="auth-cloud" data-cloud-panel aria-labelledby="cloud-title" hidden>
+        <h2 id="cloud-title">Облачная копия прогресса</h2>
+        <p class="auth-field-hint">Прогресс пока общий для этого браузера. Сохранение в аккаунт выполняется вручную. Облачная копия не загружается в игру автоматически.</p>
+        <p class="auth-cloud-guest" data-cloud-guest hidden>Чтобы проверить или сохранить облачную копию, войдите в аккаунт.</p>
+        <div class="auth-cloud-account" data-cloud-account hidden>
+          <p class="auth-message" data-cloud-status role="status" aria-live="polite"></p>
+          <dl class="auth-cloud-summary" data-cloud-summary hidden>
+            <div><dt>Обновлено на сервере</dt><dd data-cloud-date></dd></div>
+            <div><dt>Опыт</dt><dd data-cloud-xp></dd></div>
+            <div><dt>Завершённые уроки</dt><dd data-cloud-lessons></dd></div>
+          </dl>
+          <div class="auth-cloud-actions">
+            <button type="button" class="btn btn--secondary" data-cloud-check>Проверить облачную копию</button>
+            <button type="button" class="btn btn--primary" data-cloud-save>Сохранить прогресс в аккаунт</button>
+          </div>
+          <section class="auth-cloud-confirm" data-cloud-confirm hidden aria-labelledby="cloud-confirm-title">
+            <h3 id="cloud-confirm-title">Подтвердите сохранение</h3>
+            <p data-cloud-confirm-account></p>
+            <p data-cloud-confirm-local></p>
+            <p data-cloud-confirm-remote></p>
+            <p class="auth-cloud-warning">Существующая облачная копия будет заменена.</p>
+            <div class="auth-cloud-actions">
+              <button type="button" class="btn btn--primary" data-cloud-confirm-save>Сохранить копию</button>
+              <button type="button" class="auth-text-button" data-cloud-cancel>Отмена</button>
+            </div>
+          </section>
+        </div>
       </section>
 
       <section class="auth-state" data-auth-recovery hidden>

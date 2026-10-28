@@ -223,6 +223,7 @@ window.MEGA = window.MEGA || {};
     state = checked.state;
     if (checked.changed) {
       status = makeStatus("migration-pending", { hasSavedState: true, migrated: true });
+      if (window.MEGA.deferStorageMigration === true) return;
       const result = persist(state, { backupRaw: raw });
       if (!result.ok) {
         // Keep the validated state available in memory, but protect the source string.
@@ -258,6 +259,43 @@ window.MEGA = window.MEGA || {};
     return snapshot;
   }
 
+  function getCloudSnapshot() {
+    if (!['ok', 'missing', 'migration-pending'].includes(status.kind) || status.lastWriteError) {
+      return { ok: false, reason: 'local-state-unavailable' };
+    }
+
+    let raw;
+    try {
+      raw = localStorage.getItem(key);
+    } catch {
+      return { ok: false, reason: 'local-state-unavailable' };
+    }
+
+    let candidate;
+    if (raw === null) {
+      if (status.kind !== 'missing') return { ok: false, reason: 'local-state-unavailable' };
+      candidate = createDefaultState();
+    } else {
+      try {
+        candidate = JSON.parse(raw);
+      } catch {
+        return { ok: false, reason: 'local-state-unavailable' };
+      }
+    }
+
+    const checked = validateAndMigrate(candidate);
+    if (checked.error || (checked.changed && status.kind !== 'migration-pending')) return { ok: false, reason: 'local-state-unavailable' };
+    const snapshot = clone(checked.state);
+    return { ok: true, state: snapshot, fingerprint: JSON.stringify(snapshot), schemaVersion: snapshot.v };
+  }
+
+  function inspectCloudSnapshot(value, schemaVersion) {
+    if (!Number.isInteger(schemaVersion) || schemaVersion !== 1) return { ok: false };
+    const checked = validateAndMigrate(value);
+    if (checked.error || checked.changed || checked.state.v !== schemaVersion) return { ok: false };
+    return { ok: true, state: clone(checked.state) };
+  }
+
   function saveState(options = {}) {
     const result = persist(state, { allowProtected: options.allowProtected === true });
     return result.ok ? getState() : false;
@@ -279,6 +317,8 @@ window.MEGA = window.MEGA || {};
       }
       return JSON.stringify({ exportVersion, createdAt: new Date().toISOString(), progress: clone(state) });
     },
+    getCloudSnapshot,
+    inspectCloudSnapshot,
     getStoredStateRaw() {
       if (protectedRaw !== null) return { ok: true, status: status.kind, raw: protectedRaw };
       if (!status.hasSavedState) return { ok: false, status: status.kind, error: "no-saved-state" };
