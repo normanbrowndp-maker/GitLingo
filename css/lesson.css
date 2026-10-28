@@ -377,6 +377,28 @@
   background-color: var(--error-bg);
 }
 
+.feedback__command {
+  display: inline-block;
+  margin-block: 0.4rem;
+  padding: 0.35rem 0.55rem;
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-code);
+  overflow-wrap: anywhere;
+}
+
+.lesson-save-warning {
+  display: inline-block;
+  margin-top: 0.45rem;
+  color: var(--error-ink);
+  font-weight: 800;
+}
+
+[data-task-template="builder"] .chip.is-disabled {
+  opacity: 1;
+}
+
 [data-builder-hint] {
   width: 100%;
   margin: 0;

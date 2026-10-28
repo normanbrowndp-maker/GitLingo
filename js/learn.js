@@ -4,6 +4,8 @@
   const bonusList = document.querySelector("#bonus-list");
   const resetButton = document.querySelector("#reset-progress");
   const continueLink = document.querySelector("#continue-learning");
+  const reviewLink = document.querySelector("#review-errors-link");
+  const restartHeartsLink = document.querySelector("#restart-hearts-link");
   const changeLevelButton = document.querySelector("#change-level");
   const levels = ["Ничего", "Немного", "Уверенно"];
   let levelDialog;
@@ -111,6 +113,23 @@
     continueLink.href = firstUnfinished ? `lesson.html?id=${firstUnfinished.id}` : "learn.html";
     continueLink.textContent = firstUnfinished ? "Продолжить" : "Все уроки пройдены";
     continueLink.setAttribute("aria-disabled", String(!firstUnfinished));
+    const storageWritable = state.getStorageStatus().writable;
+    const queue = saved.mistakes.filter((entry) => entry.needsReview);
+    const availableIds = new Set();
+    for (const lesson of data.lessons) {
+      for (const [phase, tasks] of [["practice", lesson.tasks], ["test", lesson.test.slice(0, data.config.TEST_LENGTH)]]) {
+        tasks.forEach((task, index) => availableIds.add(state.questionId("lesson", String(lesson.id), phase, index, task)));
+      }
+    }
+    for (const bonus of data.bonuses) {
+      bonus.tasks.forEach((task, index) => availableIds.add(state.questionId("bonus", bonus.id, "practice", index, task)));
+    }
+    const actionable = queue.filter((entry) => availableIds.has(entry.id)).length;
+    reviewLink.hidden = !storageWritable || queue.length === 0;
+    reviewLink.textContent = `Работа над ошибками (${actionable})`;
+    const restartLesson = data.lessons.find((lesson) => state.isLessonUnlocked(lesson.id));
+    restartHeartsLink.hidden = !storageWritable || saved.hearts !== 0 || queue.length > 0 || !restartLesson;
+    if (restartLesson) restartHeartsLink.href = `lesson.html?id=${restartLesson.id}&mode=restart`;
     ui.updateStreak();
   }
 
@@ -276,6 +295,12 @@
   if (search.get("notice") === "locked") {
     const required = Number(search.get("required")) || 1;
     ui.toast(`Сначала пройди урок ${required} и сдай тест.`);
+    history.replaceState(null, "", "learn.html");
+  } else if (search.get("notice") === "no-hearts") {
+    ui.toast("Тест закрыт: нет сердец. Откройте теорию, повторите практику или разберите ошибки.");
+    history.replaceState(null, "", "learn.html");
+  } else if (search.get("notice") === "storage-error") {
+    ui.toast("Не удалось сохранить восстановление сердец. Проверьте хранилище браузера.");
     history.replaceState(null, "", "learn.html");
   }
 

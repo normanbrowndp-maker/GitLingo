@@ -13,8 +13,10 @@ window.MEGA = window.MEGA || {};
       v: 1,
       xp: 0,
       streak: 0,
+      hearts: 5,
       lastActiveDate: null,
       profile: { level: null },
+      mistakes: [],
       lessons: Object.fromEntries(lessonIds.map((id) => [String(id), {
         completed: false,
         bestAccuracy: 0,
@@ -70,6 +72,60 @@ window.MEGA = window.MEGA || {};
       } else if (!Number.isFinite(value[field]) || value[field] < 0) {
         return { error: "invalid-structure" };
       }
+    }
+    if (!Object.prototype.hasOwnProperty.call(value, "hearts")) {
+      result.hearts = defaults.hearts;
+      changed = true;
+    } else if (!Number.isInteger(value.hearts) || value.hearts < 0 || value.hearts > 5) {
+      return { error: "invalid-structure" };
+    }
+    if (!Object.prototype.hasOwnProperty.call(value, "mistakes")) {
+      result.mistakes = [];
+      changed = true;
+    } else if (!Array.isArray(value.mistakes)) {
+      return { error: "invalid-structure" };
+    } else {
+      result.mistakes = value.mistakes.map((entry) => {
+        if (!entry || typeof entry !== "object" || Array.isArray(entry)
+          || typeof entry.id !== "string" || entry.id.length < 1 || entry.id.length > 160
+          || !["lesson", "bonus"].includes(entry.unitKind)
+          || typeof entry.unitId !== "string" || entry.unitId.length < 1 || entry.unitId.length > 24
+          || !["practice", "test"].includes(entry.phase)
+          || (entry.unitKind === "lesson" && !lessonIds.map(String).includes(entry.unitId))
+          || (entry.unitKind === "bonus" && (!bonusIds.includes(entry.unitId) || entry.phase !== "practice"))
+          || !Number.isInteger(entry.taskIndex) || entry.taskIndex < 0 || entry.taskIndex > 200
+          || !["choice", "builder", "hotkeys", "matching"].includes(entry.type)
+          || !Number.isInteger(entry.wrongCount) || entry.wrongCount < 1
+          || typeof entry.needsReview !== "boolean"
+          || !Number.isInteger(entry.reviewVersion) || entry.reviewVersion < 1) return null;
+
+        const answer = entry.answer;
+        if (!answer || typeof answer !== "object" || Array.isArray(answer)) return null;
+        if (["choice", "hotkeys"].includes(entry.type)) {
+          if (answer.kind !== "option" || typeof answer.selected !== "string" || answer.selected.length > 80) return null;
+        } else if (entry.type === "builder") {
+          if (answer.kind !== "builder" || !Array.isArray(answer.blocks) || answer.blocks.length > 40
+            || answer.blocks.some((block) => typeof block !== "string" || block.length > 160)) return null;
+        } else if (answer.kind !== "matching" || !Array.isArray(answer.pairs) || answer.pairs.length > 40
+          || answer.pairs.some((pair) => !pair || !Number.isInteger(pair.termIndex) || pair.termIndex < 0
+            || !Number.isInteger(pair.definitionIndex) || pair.definitionIndex < 0)) return null;
+
+        return {
+          id: entry.id,
+          unitKind: entry.unitKind,
+          unitId: entry.unitId,
+          phase: entry.phase,
+          taskIndex: entry.taskIndex,
+          type: entry.type,
+          answer: clone(answer),
+          wrongCount: entry.wrongCount,
+          needsReview: entry.needsReview,
+          reviewVersion: entry.reviewVersion
+        };
+      });
+      if (result.mistakes.some((entry) => entry === null)) return { error: "invalid-structure" };
+      const ids = result.mistakes.map((entry) => entry.id);
+      if (new Set(ids).size !== ids.length) return { error: "invalid-structure" };
     }
     if (!Object.prototype.hasOwnProperty.call(value, "lastActiveDate")) {
       if (!migrating) return { error: "invalid-structure" };
@@ -292,8 +348,169 @@ window.MEGA = window.MEGA || {};
   function inspectCloudSnapshot(value, schemaVersion) {
     if (!Number.isInteger(schemaVersion) || schemaVersion !== 1) return { ok: false };
     const checked = validateAndMigrate(value);
-    if (checked.error || checked.changed || checked.state.v !== schemaVersion) return { ok: false };
+    const isOlderFullSnapshot = value && typeof value === "object" && !Array.isArray(value)
+      && value.v === schemaVersion
+      && (!Object.prototype.hasOwnProperty.call(value, "hearts") || !Object.prototype.hasOwnProperty.call(value, "mistakes"));
+    if (checked.error || (checked.changed && !isOlderFullSnapshot) || checked.state.v !== schemaVersion) return { ok: false };
     return { ok: true, state: clone(checked.state) };
+  }
+
+  function questionId(unitKind, unitId, phase, taskIndex, task) {
+    if (!["lesson", "bonus"].includes(unitKind) || typeof unitId !== "string"
+      || !["practice", "test"].includes(phase) || !Number.isInteger(taskIndex) || taskIndex < 0
+      || !task || typeof task.type !== "string" || typeof task.question !== "string") return "";
+    const options = Array.isArray(task.options) ? task.options.map((option) => ({
+      id: option.id,
+      text: option.text || "",
+      code: option.code || "",
+      keys: Array.isArray(option.keys) ? option.keys : []
+    })) : [];
+    const shape = JSON.stringify({
+      type: task.type,
+      question: task.question,
+      answer: task.answer,
+      options,
+      blocks: Array.isArray(task.blocks) ? task.blocks : [],
+      pairs: Array.isArray(task.pairs) ? task.pairs.map((pair) => [pair.term, pair.def]) : []
+    });
+    let first = 2166136261;
+    let second = 0x9e3779b9;
+    for (let index = 0; index < shape.length; index += 1) {
+      const code = shape.charCodeAt(index);
+      first = Math.imul(first ^ code, 16777619);
+      second = Math.imul(second ^ code, 2246822519);
+    }
+    const fingerprint = `${(first >>> 0).toString(16).padStart(8, "0")}${(second >>> 0).toString(16).padStart(8, "0")}`;
+    return `${unitKind}:${unitId}:${phase}:${taskIndex}:${fingerprint}`;
+  }
+
+  function normalizeMistakeAnswer(type, answer) {
+    if (!answer || typeof answer !== "object" || Array.isArray(answer)) return null;
+    if (["choice", "hotkeys"].includes(type) && answer.kind === "option"
+      && typeof answer.selected === "string" && answer.selected.length <= 80) {
+      return { kind: "option", selected: answer.selected };
+    }
+    if (type === "builder" && answer.kind === "builder" && Array.isArray(answer.blocks)
+      && answer.blocks.length <= 40 && answer.blocks.every((block) => typeof block === "string" && block.length <= 160)) {
+      return { kind: "builder", blocks: answer.blocks.slice() };
+    }
+    if (type === "matching" && answer.kind === "matching" && Array.isArray(answer.pairs)
+      && answer.pairs.length <= 40 && answer.pairs.every((pair) => pair
+        && Number.isInteger(pair.termIndex) && pair.termIndex >= 0
+        && Number.isInteger(pair.definitionIndex) && pair.definitionIndex >= 0)) {
+      return { kind: "matching", pairs: answer.pairs.map((pair) => ({
+        termIndex: pair.termIndex,
+        definitionIndex: pair.definitionIndex
+      })) };
+    }
+    return null;
+  }
+
+  function refreshStateBeforeReviewWrite() {
+    if (!status.writable) return false;
+    let raw;
+    try {
+      raw = localStorage.getItem(key);
+    } catch {
+      return false;
+    }
+    if (raw === null) {
+      if (status.kind !== "missing" || status.hasSavedState) return false;
+      state = createDefaultState();
+      return true;
+    }
+    let parsed;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      return false;
+    }
+    const checked = validateAndMigrate(parsed);
+    if (checked.error || checked.changed) return false;
+    state = checked.state;
+    status = makeStatus("ok", { hasSavedState: true });
+    return true;
+  }
+
+  function recordQuestionError(info, answer, loseHeart = false, expectedReviewVersion = null) {
+    if (!info || typeof info.id !== "string" || !info.id || info.id.length > 160
+      || !["lesson", "bonus"].includes(info.unitKind) || typeof info.unitId !== "string"
+      || !["practice", "test"].includes(info.phase) || !Number.isInteger(info.taskIndex) || info.taskIndex < 0
+      || (info.unitKind === "lesson" && !lessonIds.map(String).includes(info.unitId))
+      || (info.unitKind === "bonus" && (!bonusIds.includes(info.unitId) || info.phase !== "practice"))
+      || !["choice", "builder", "hotkeys", "matching"].includes(info.type)) return { ok: false, reason: "invalid-record" };
+    const safeAnswer = normalizeMistakeAnswer(info.type, answer);
+    if (!safeAnswer) return { ok: false, reason: "invalid-answer" };
+    if (!refreshStateBeforeReviewWrite()) return { ok: false, saved: false, stale: false, reason: "state-unavailable", hearts: state.hearts };
+    const next = clone(state);
+    const existingIndex = next.mistakes.findIndex((entry) => entry.id === info.id);
+    if (expectedReviewVersion !== null) {
+      const existing = next.mistakes[existingIndex];
+      if (!existing || !existing.needsReview || existing.reviewVersion !== expectedReviewVersion) {
+        return { ok: true, saved: false, stale: true, hearts: state.hearts };
+      }
+    }
+    if (existingIndex >= 0) {
+      const existing = next.mistakes[existingIndex];
+      existing.wrongCount += 1;
+      existing.answer = safeAnswer;
+      if (!existing.needsReview) {
+        existing.needsReview = true;
+        existing.reviewVersion += 1;
+      }
+    } else {
+      next.mistakes.push({
+        id: info.id,
+        unitKind: info.unitKind,
+        unitId: info.unitId,
+        phase: info.phase,
+        taskIndex: info.taskIndex,
+        type: info.type,
+        answer: safeAnswer,
+        wrongCount: 1,
+        needsReview: true,
+        reviewVersion: 1
+      });
+    }
+    if (loseHeart) next.hearts = Math.max(0, next.hearts - 1);
+    const result = persist(next);
+    return result.ok
+      ? { ok: true, saved: true, stale: false, hearts: state.hearts }
+      : { ok: false, saved: false, stale: false, reason: result.error, hearts: state.hearts };
+  }
+
+  function resolveReviewQuestion(id, reviewVersion) {
+    if (!refreshStateBeforeReviewWrite()) return { ok: false, closed: false, hearts: state.hearts, reason: "state-unavailable" };
+    const next = clone(state);
+    const entry = next.mistakes.find((mistake) => mistake.id === id);
+    if (!entry || !entry.needsReview || entry.reviewVersion !== reviewVersion) {
+      return { ok: true, closed: false, hearts: state.hearts };
+    }
+    entry.needsReview = false;
+    next.hearts = Math.min(5, next.hearts + 1);
+    const result = persist(next);
+    return result.ok
+      ? { ok: true, closed: true, hearts: state.hearts }
+      : { ok: false, closed: false, hearts: state.hearts, reason: result.error };
+  }
+
+  function removeMistake(id) {
+    if (!refreshStateBeforeReviewWrite()) return { ok: false, removed: false, reason: "state-unavailable" };
+    const next = clone(state);
+    const index = next.mistakes.findIndex((entry) => entry.id === id);
+    if (index < 0) return { ok: true, removed: false };
+    next.mistakes.splice(index, 1);
+    const result = persist(next);
+    return result.ok ? { ok: true, removed: true } : { ok: false, removed: false, reason: result.error };
+  }
+
+  function restoreHearts() {
+    if (!refreshStateBeforeReviewWrite()) return { ok: false, hearts: state.hearts, reason: "state-unavailable" };
+    if (state.hearts === 5) return { ok: true, hearts: 5, changed: false };
+    const next = clone(state);
+    next.hearts = 5;
+    const result = persist(next);
+    return result.ok ? { ok: true, hearts: state.hearts, changed: true } : { ok: false, hearts: state.hearts, reason: result.error };
   }
 
   function saveState(options = {}) {
@@ -319,6 +536,11 @@ window.MEGA = window.MEGA || {};
     },
     getCloudSnapshot,
     inspectCloudSnapshot,
+    questionId,
+    recordQuestionError,
+    resolveReviewQuestion,
+    removeMistake,
+    restoreHearts,
     getStoredStateRaw() {
       if (protectedRaw !== null) return { ok: true, status: status.kind, raw: protectedRaw };
       if (!status.hasSavedState) return { ok: false, status: status.kind, error: "no-saved-state" };

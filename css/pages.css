@@ -621,3 +621,118 @@
     flex: 1 1 100%;
   }
 }
+
+.page-review main {
+  display: grid;
+  width: min(100% - 2rem, 900px);
+  gap: 1.25rem;
+  margin-inline: auto;
+}
+
+.review-card {
+  display: grid;
+  min-width: 0;
+  gap: 1rem;
+  padding: clamp(1rem, 4vw, 2rem);
+  border: 2px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--card);
+  box-shadow: var(--shadow);
+}
+
+.review-card > h1,
+.review-card > #review-total {
+  text-align: center;
+}
+
+.review-empty,
+.review-message {
+  padding: 1rem;
+  border-radius: var(--radius-md);
+  background: var(--bg);
+  color: var(--text);
+  text-align: center;
+}
+
+.review-groups {
+  display: grid;
+  gap: 1rem;
+}
+
+.review-group {
+  display: grid;
+  min-width: 0;
+  gap: 0.75rem;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg);
+}
+
+.review-group h2 {
+  font-size: 1.2rem;
+}
+
+.review-group ul,
+.review-stale-list {
+  display: grid;
+  gap: 0.55rem;
+  padding: 0;
+  list-style: none;
+}
+
+.review-group li,
+.review-stale-list li {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--card);
+  overflow-wrap: anywhere;
+}
+
+.review-group__phase {
+  flex: 0 0 auto;
+  padding: 0.2rem 0.5rem;
+  border-radius: var(--radius-pill);
+  background: var(--brand-soft);
+  color: var(--text);
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.review-group .btn,
+.review-stale-list .btn {
+  justify-self: start;
+  white-space: normal;
+}
+
+.review-stale-section {
+  display: grid;
+  gap: 0.7rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.review-stale-section > p {
+  color: var(--text-muted);
+}
+
+.review-stale-list li {
+  justify-content: space-between;
+}
+
+.review-card > .btn {
+  justify-self: center;
+}
+
+@media (max-width: 480px) {
+  .review-card > .btn,
+  .review-stale-list .btn {
+    width: 100%;
+  }
+}

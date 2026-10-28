@@ -4,6 +4,9 @@
   const requestedId = search.get("id");
   const requestedMode = search.get("mode");
   const requestedTheory = requestedMode === "theory";
+  const requestedReview = requestedMode === "review";
+  const requestedPractice = requestedMode === "practice";
+  const requestedRestart = requestedMode === "restart";
   const unit = data.lessons.find((lesson) => String(lesson.id) === requestedId)
     || data.bonuses.find((bonus) => bonus.id === requestedId);
 
@@ -18,16 +21,32 @@
     return;
   }
 
+  if (requestedMode === "test" && state.get().hearts === 0) {
+    window.location.replace("learn.html?notice=no-hearts");
+    return;
+  }
+
+  if (requestedRestart && state.get().hearts === 0) {
+    const restored = state.restoreHearts();
+    if (!restored.ok) {
+      window.location.replace("learn.html?notice=storage-error");
+      return;
+    }
+  }
+
   const isBonus = data.bonuses.includes(unit);
   let isTest = !isBonus && requestedMode === "test";
+  const isReview = requestedReview;
+  let isFreePractice = requestedPractice;
   const lessonId = unit.id;
-  const sourceTasks = isBonus ? unit.tasks : (isTest ? unit.test : unit.tasks);
   const profileLevel = state.get().profile.level;
   const introScreen = document.querySelector("#lesson-intro");
   const theoryScreen = document.querySelector("#lesson-theory");
   const taskGuidance = document.querySelector("#task-guidance");
   const lessonFooter = document.querySelector(".lesson__footer");
   const openTheoryButton = document.querySelector("#open-theory-btn");
+  const freePracticeButton = document.querySelector("#free-practice-btn");
+  const restartHeartsButton = document.querySelector("#restart-hearts-btn");
   const lessonSteps = [...document.querySelectorAll("#lesson-steps [data-step]")];
   const lessonName = isBonus ? unit.title : `Урок ${unit.id}`;
   document.documentElement.style.setProperty("--lesson-accent", unit.accent || "var(--text-muted)");
@@ -62,13 +81,12 @@
   let matchedPairs = new Set();
   let attemptsByTask = new Map();
   let selectedTerm = null;
-  let attemptCount = 0;
   let correctTasks = 0;
   let firstTryCorrect = 0;
-  let questionsAnswered = 0;
-  let lives = data.config.LIVES;
+  let lives = state.get().hearts;
   let earnedXp = 0;
   let noErrors = true;
+  let wrongAnswers = 0;
   let wrongForCurrent = false;
   let resultLesson = { correct: 0, total: 0, xp: 0 };
   let resultTest = null;
@@ -77,9 +95,11 @@
   let testIndex = 0;
   let pendingLifeLoss = null;
   let continuingTask = false;
-  let noLivesModalOpen = false;
   let progressPulseTimer = null;
   let xpPopupTimer = null;
+  let currentReviewItem = null;
+  let reviewCorrect = 0;
+  let lastMistakeSave = null;
 
   function setScreen(nextScreen) {
     screen = nextScreen;
@@ -92,7 +112,7 @@
     progress.hidden = screen !== "tasks" && screen !== "test";
     progressContainer.hidden = progress.hidden;
     testBadge.hidden = screen !== "test";
-    livesContainer.hidden = screen !== "tasks";
+    livesContainer.hidden = screen !== "tasks" && screen !== "test";
     const labels = { intro: "Введение", theory: "Теория", tasks: "Задания", test: "Тест" };
     document.querySelector("#lesson-breadcrumb").textContent = `${lessonName} · ${labels[screen]}`;
     for (const step of lessonSteps) {
@@ -118,6 +138,9 @@
     }));
     document.querySelector("#skip-theory-btn").hidden = profileLevel !== "Немного";
     openTheoryButton.hidden = profileLevel !== "Уверенно";
+    freePracticeButton.hidden = lives > 0;
+    const openMistakes = state.get().mistakes.filter((entry) => entry.needsReview).length;
+    restartHeartsButton.hidden = lives > 0 || openMistakes > 0;
   }
 
   function renderTheoryCard() {
@@ -175,17 +198,20 @@
     setScreen("theory");
   }
 
-  function startTasks() {
+  function startTasks(options = {}) {
     isTest = false;
     history.replaceState(null, "", `lesson.html?id=${lessonId}`);
+    isFreePractice = options.free === true || requestedPractice || lives === 0;
     const taskCount = unit.tasks.length;
     const lastTwo = taskCount % 100;
     const lastOne = taskCount % 10;
     const taskWord = lastTwo >= 11 && lastTwo <= 14 ? "заданий"
       : (lastOne === 1 ? "задание" : (lastOne >= 2 && lastOne <= 4 ? "задания" : "заданий"));
-    taskGuidance.textContent = `Сейчас будет ${taskCount} ${taskWord}, ошибки не страшны, за неверный ответ теряется жизнь.`;
+    taskGuidance.textContent = isFreePractice
+      ? `Свободная повторная практика: ошибки не расходуют сердца, опыт и тест не засчитываются. Вопросов: ${taskCount}.`
+      : `Сейчас будет ${taskCount} ${taskWord}. За неверный ответ теряется сердце; ошибочные вопросы можно разобрать отдельно.`;
     setScreen("tasks");
-    resetSession(sourceTasks, false);
+    resetSession(unit.tasks, false);
   }
 
   function setProgress(value, pulse = false) {
@@ -328,14 +354,16 @@
   function renderTask(task) {
     clearBuilderAnimations();
     builderStatus.textContent = "";
-    currentTask = task;
+    currentReviewItem = isReview ? task : null;
+    currentTask = isReview ? task.task : task;
+    task = currentTask;
     currentSection = templates.find((section) => section.dataset.taskTemplate === task.type);
     selectedAnswer = null;
     selectedBlocks = [];
     matchedPairs = new Set();
     selectedTerm = null;
     pendingLifeLoss = null;
-    attemptCount = attemptsByTask.get(task) || 0;
+    lastMistakeSave = null;
     wrongForCurrent = false;
     taskArea.dataset.taskType = task.type;
     taskArea.querySelector("p").textContent = task.question;
@@ -356,6 +384,8 @@
   function renderNext() {
     if (queue.length === 0) {
       if (isTest) finishTest();
+      else if (isReview) finishReview();
+      else if (isFreePractice) finishPractice();
       else if (isBonus) finishBonus();
       else beginTest();
       return;
@@ -393,6 +423,8 @@
         button.disabled = true;
       }
       builderClearButton.disabled = true;
+    } else if (currentTask.type === "matching" && isReview) {
+      for (const button of currentSection.querySelectorAll("button[data-pair-index]")) button.disabled = true;
     }
   }
 
@@ -409,7 +441,27 @@
     continueButton.hidden = false;
     continueButton.textContent = correct ? "Продолжить" : "Понятно";
     if (correct) successPanel.querySelector("span").textContent = praise[Math.floor(Math.random() * praise.length)];
-    else errorExplanation.textContent = `Правильный ответ: ${answerText()}. ${currentTask.explain}`;
+    else if (currentTask.type === "builder") {
+      const label = document.createElement("strong");
+      label.textContent = "Правильная команда";
+      const command = document.createElement("code");
+      command.className = "feedback__command";
+      command.textContent = answerText();
+      const explanation = document.createElement("span");
+      explanation.textContent = currentTask.explain;
+      errorExplanation.replaceChildren(label, document.createElement("br"), command, document.createElement("br"), explanation);
+    } else {
+      errorExplanation.textContent = `Правильный ответ: ${answerText()}. ${currentTask.explain}`;
+    }
+    if (!correct && lastMistakeSave && !lastMistakeSave.saved) {
+      const warning = document.createElement("span");
+      warning.className = "lesson-save-warning";
+      warning.textContent = lastMistakeSave.stale
+        ? "Запись ошибки изменилась в другой вкладке. Обновите очередь перед продолжением."
+        : "Не удалось сохранить изменение прогресса в этом браузере.";
+      if (!errorExplanation.hasChildNodes()) errorExplanation.textContent = `Правильный ответ: ${answerText()}. ${currentTask.explain}`;
+      errorExplanation.append(document.createElement("br"), warning);
+    }
     if (!correct && currentTask.type === "builder") {
       currentSection.querySelector("#answer-zone").classList.add("is-wrong");
     }
@@ -435,41 +487,50 @@
     pendingLifeLoss = new Promise((resolve) => {
       window.setTimeout(() => {
         livesContainer.classList.remove("lives--break");
-        lives = Math.max(0, lives - 1);
+        lives = state.get().hearts;
         livesCount.textContent = String(lives);
         if (lives === 0) {
           livesContainer.classList.add("lives--empty");
           gameOver = true;
-          showNoLivesModal();
+          if (currentTask?.type === "matching" && !feedback.classList.contains("is-visible")) openFeedback(false);
         }
         resolve();
       }, 400);
     });
   }
 
-  function recordWrong() {
-    noErrors = false;
-    if (isTest) {
-      attemptsByTask.set(currentTask, (attemptsByTask.get(currentTask) || 0) + 1);
-      return;
-    }
-    if (wrongForCurrent) return;
-    wrongForCurrent = true;
-    attemptsByTask.set(currentTask, (attemptsByTask.get(currentTask) || 0) + 1);
-    loseLifeAfterBreak();
+  function currentTaskInfo() {
+    const phase = isTest ? "test" : (currentReviewItem?.phase || "practice");
+    const unitKind = isBonus ? "bonus" : "lesson";
+    const tasks = isBonus ? unit.tasks : (phase === "test" ? unit.test.slice(0, data.config.TEST_LENGTH) : unit.tasks);
+    const taskIndex = isReview ? currentReviewItem.taskIndex : tasks.indexOf(currentTask);
+    return {
+      id: state.questionId(unitKind, String(lessonId), phase, taskIndex, currentTask),
+      unitKind,
+      unitId: String(lessonId),
+      phase,
+      taskIndex,
+      type: currentTask.type
+    };
   }
 
-  function showNoLivesModal() {
-    if (noLivesModalOpen) return;
-    noLivesModalOpen = true;
-    ui.modal("Жизни закончились", "Можно начать урок заново или вернуться к карте.", [
-      { label: "Начать заново", value: "restart", className: "btn btn--primary" },
-      { label: "К карте уроков", value: "map", className: "btn btn--secondary" }
-    ]).then((choice) => {
-      noLivesModalOpen = false;
-      if (choice === "restart") startLesson();
-      else if (choice === "map") window.location.href = "learn.html";
-    });
+  function currentUserAnswer(override = null) {
+    if (override) return override;
+    if (currentTask.type === "choice" || currentTask.type === "hotkeys") return { kind: "option", selected: selectedAnswer || "" };
+    if (currentTask.type === "builder") return { kind: "builder", blocks: selectedBlocks.slice() };
+    return { kind: "matching", pairs: [] };
+  }
+
+  function recordWrong(answer = null) {
+    noErrors = false;
+    wrongAnswers += 1;
+    attemptsByTask.set(currentTask, (attemptsByTask.get(currentTask) || 0) + 1);
+    const losesHeart = !isReview && !isFreePractice && !wrongForCurrent;
+    const reviewVersion = isReview ? currentReviewItem.reviewVersion : null;
+    lastMistakeSave = state.recordQuestionError(currentTaskInfo(), currentUserAnswer(answer), losesHeart, reviewVersion);
+    if (!isReview && !isFreePractice) wrongForCurrent = true;
+    if (lastMistakeSave.ok && lastMistakeSave.saved && losesHeart) loseLifeAfterBreak();
+    return lastMistakeSave;
   }
 
   function showXpPopup(amount) {
@@ -488,17 +549,43 @@
 
   function handleCorrect() {
     if (!currentTask || feedback.classList.contains("is-visible")) return;
+    if (isReview) {
+      const result = state.resolveReviewQuestion(currentReviewItem.id, currentReviewItem.reviewVersion);
+      if (result.ok && result.closed) {
+        queue.shift();
+        reviewCorrect += 1;
+        lives = result.hearts;
+        livesCount.textContent = String(lives);
+        livesContainer.classList.toggle("lives--empty", lives === 0);
+        setProgress(reviewCorrect, true);
+        openFeedback(true);
+        successPanel.querySelector("span").textContent = "Ошибка исправлена. Возвращено 1 сердце.";
+        return;
+      }
+      if (result.ok) {
+        queue.shift();
+        openFeedback(true);
+        successPanel.querySelector("span").textContent = "Эта ошибка уже закрыта или изменилась в другой вкладке. Сердце повторно не начислено.";
+        return;
+      }
+      queue.shift();
+      queue.push(currentReviewItem);
+      openFeedback(true);
+      successPanel.querySelector("span").textContent = "Ответ правильный, но исправление не удалось сохранить. Сердце не начислено; вопрос остался в очереди.";
+      return;
+    }
     const firstAttempt = (attemptsByTask.get(currentTask) || 0) === 0;
     if (firstAttempt && !isTest) firstTryCorrect += 1;
-    questionsAnswered += 1;
-
     if (isTest) {
       resultTest.correct += 1;
+      resultTest.answered += 1;
     } else {
       correctTasks += 1;
-      const xp = firstAttempt ? data.config.XP_FIRST_TRY : data.config.XP_RETRY;
-      earnedXp += xp;
-      showXpPopup(xp);
+      if (!isFreePractice) {
+        const xp = firstAttempt ? data.config.XP_FIRST_TRY : data.config.XP_RETRY;
+        earnedXp += xp;
+        showXpPopup(xp);
+      }
     }
     setProgress(progress.value + 1, true);
 
@@ -510,13 +597,17 @@
     if (!currentTask || feedback.classList.contains("is-visible")) return;
     recordWrong();
 
-    if (!isTest) {
+    if (isReview) {
+      queue.shift();
+      queue.push(currentReviewItem);
+    } else if (!isTest) {
       queue.shift();
       queue.push(currentTask);
     } else {
       queue.shift();
+      resultTest.wrong += 1;
+      resultTest.answered += 1;
     }
-    questionsAnswered += 1;
     openFeedback(false);
   }
 
@@ -548,7 +639,17 @@
       return;
     }
 
-    if (!wrongForCurrent) recordWrong();
+    const answer = { kind: "matching", pairs: [{ termIndex: Number(selectedTerm), definitionIndex: Number(index) }] };
+    const mistake = recordWrong(answer);
+    if (isReview) {
+      if (!mistake || !mistake.saved) {
+        lastMistakeSave = mistake || { saved: false, stale: false };
+      }
+      queue.shift();
+      queue.push(currentReviewItem);
+      openFeedback(false);
+      return;
+    }
     termButton.classList.remove("is-selected");
     termButton.classList.add("is-wrong");
     button.classList.add("is-wrong");
@@ -667,7 +768,7 @@
       const wasError = !errorPanel.hidden;
       hideFeedback();
       if (gameOver) {
-        showNoLivesModal();
+        finishInterruptedAttempt();
         return;
       }
       if (wasError && !isTest && currentTask.type === "matching") {
@@ -693,20 +794,18 @@
     matchedPairs = new Set();
     correctTasks = 0;
     firstTryCorrect = preserveLessonResult ? previousFirstTryCorrect : 0;
-    questionsAnswered = 0;
     earnedXp = 0;
     noErrors = true;
+    wrongAnswers = testMode ? 0 : (preserveLessonResult ? resultLesson.errors || 0 : 0);
     wrongForCurrent = false;
-    attemptCount = 0;
-    lives = data.config.LIVES;
+    lives = state.get().hearts;
     gameOver = false;
-    noLivesModalOpen = false;
     testIndex = 0;
-    resultLesson = preserveLessonResult ? previousLessonResult : { correct: 0, total: 0, xp: 0 };
-    resultTest = testMode ? { correct: 0, total: tasks.length, passed: false } : null;
+    resultLesson = preserveLessonResult ? previousLessonResult : { correct: 0, firstTryCorrect: 0, total: 0, xp: 0, errors: 0 };
+    resultTest = testMode ? { correct: 0, total: tasks.length, wrong: 0, answered: 0, passed: false, interrupted: false } : null;
     startedAt = preserveLessonResult ? previousStartTime : Date.now();
     livesCount.textContent = String(lives);
-    livesContainer.hidden = testMode;
+    livesContainer.hidden = false;
     livesContainer.classList.remove("lives--empty", "lives--hit", "lives--break");
     window.clearTimeout(progressPulseTimer);
     progressPulseTimer = null;
@@ -736,6 +835,11 @@
   }
 
   function beginTest() {
+    if (state.get().hearts <= 0) {
+      showTheory();
+      ui.toast("Для новой попытки теста нужно хотя бы одно сердце. Теория и свободная практика доступны.");
+      return;
+    }
     const tests = unit.test.slice(0, data.config.TEST_LENGTH);
     const questionCount = tests.length;
     const transitionText = screen === "intro"
@@ -746,7 +850,7 @@
     ]).then((choice) => {
       if (choice !== "start") return;
       if (noErrors) earnedXp += data.config.XP_PERFECT_BONUS;
-      resultLesson = { correct: firstTryCorrect, total: unit.tasks.length, xp: earnedXp };
+      resultLesson = { correct: correctTasks, firstTryCorrect, total: unit.tasks.length, xp: earnedXp, errors: wrongAnswers };
       isTest = true;
       history.replaceState(null, "", `lesson.html?id=${lessonId}&mode=test`);
       taskGuidance.hidden = true;
@@ -755,11 +859,13 @@
     });
   }
 
-  function finishTest() {
+  function finishTest(interrupted = false) {
     const testAccuracy = resultTest.total ? resultTest.correct / resultTest.total : 0;
-    resultTest.passed = testAccuracy >= data.config.PASS_RATIO;
+    resultTest.interrupted = interrupted;
+    resultTest.passed = !interrupted && testAccuracy >= data.config.PASS_RATIO;
+    resultTest.wrong = wrongAnswers;
     const lessonAccuracy = resultLesson.total
-      ? resultLesson.correct / resultLesson.total
+      ? (resultLesson.firstTryCorrect ?? resultLesson.correct) / resultLesson.total
       : testAccuracy;
     const combinedTotal = resultLesson.total + resultTest.total;
     const combinedCorrect = resultLesson.correct + resultTest.correct;
@@ -781,11 +887,80 @@
       totalTimeSec: Math.max(0, Math.floor((Date.now() - startedAt) / 1000)),
       totalXp,
       passed: resultTest.passed,
+      interrupted,
       accuracy
     });
   }
 
+  function finishPractice() {
+    saveResult({
+      kind: "practice",
+      lessonId,
+      lesson: { correct: correctTasks, total: unit.tasks.length, errors: wrongAnswers, xp: 0 },
+      test: null,
+      totalTimeSec: Math.max(0, Math.floor((Date.now() - startedAt) / 1000)),
+      totalXp: 0,
+      passed: false,
+      accuracy: unit.tasks.length ? Math.round((correctTasks / unit.tasks.length) * 100) : 0
+    });
+  }
+
+  function finishReview() {
+    window.location.href = "review.html?done=1";
+  }
+
+  function getReviewTasks() {
+    const saved = state.get().mistakes;
+    const expectedKind = isBonus ? "bonus" : "lesson";
+    const unitIdText = String(lessonId);
+    const items = [];
+    for (const entry of saved) {
+      if (!entry.needsReview || entry.unitKind !== expectedKind || entry.unitId !== unitIdText) continue;
+      const tasks = entry.phase === "test" && !isBonus
+        ? unit.test.slice(0, data.config.TEST_LENGTH)
+        : unit.tasks;
+      const task = tasks[entry.taskIndex];
+      if (!task) continue;
+      const id = state.questionId(entry.unitKind, entry.unitId, entry.phase, entry.taskIndex, task);
+      if (id !== entry.id || task.type !== entry.type) continue;
+      items.push({
+        task,
+        id: entry.id,
+        phase: entry.phase,
+        taskIndex: entry.taskIndex,
+        reviewVersion: entry.reviewVersion
+      });
+    }
+    return items;
+  }
+
+  function finishInterruptedAttempt() {
+    if (isReview) {
+      window.location.href = "review.html";
+      return;
+    }
+    if (isTest) {
+      finishTest(true);
+      return;
+    }
+    saveResult({
+      kind: "lesson",
+      lessonId,
+      lesson: { correct: correctTasks, total: unit.tasks.length, errors: wrongAnswers, xp: 0 },
+      test: null,
+      interrupted: true,
+      totalTimeSec: Math.max(0, Math.floor((Date.now() - startedAt) / 1000)),
+      totalXp: 0,
+      passed: false,
+      accuracy: unit.tasks.length ? Math.round((correctTasks / unit.tasks.length) * 100) : 0
+    });
+  }
+
   function finishBonus() {
+    if (isFreePractice) {
+      finishPractice();
+      return;
+    }
     if (noErrors) earnedXp += data.config.XP_PERFECT_BONUS;
     const firstCompletion = state.completeBonus(lessonId);
     const totalXp = firstCompletion ? earnedXp : 0;
@@ -823,8 +998,24 @@
   }
 
   document.querySelector("#start-lesson-btn").addEventListener("click", () => {
-    if (profileLevel === "Уверенно") beginTest();
+    if (requestedRestart) {
+      startTasks();
+      return;
+    }
+    if (profileLevel === "Уверенно" && lives > 0) beginTest();
     else showTheory();
+  });
+  freePracticeButton.addEventListener("click", () => startTasks({ free: true }));
+  restartHeartsButton.addEventListener("click", () => {
+    const restored = state.restoreHearts();
+    if (!restored.ok) {
+      ui.toast("Не удалось сохранить восстановление сердец. Попробуйте ещё раз.");
+      return;
+    }
+    lives = restored.hearts;
+    livesCount.textContent = String(lives);
+    livesContainer.classList.remove("lives--empty");
+    startTasks();
   });
   openTheoryButton.addEventListener("click", () => showTheory(true));
   document.querySelector("#skip-theory-btn").addEventListener("click", startTasks);
@@ -927,10 +1118,22 @@
     }
   });
 
-  if (isTest) {
+  if (isReview) {
+    const reviewTasks = getReviewTasks();
+    if (!reviewTasks.length) {
+      window.location.replace("review.html");
+      return;
+    }
+    reviewCorrect = 0;
+    taskGuidance.textContent = "Ответьте самостоятельно. Неверный ответ покажет разбор и оставит вопрос в очереди; сердца и опыт за разбор не списываются и не начисляются.";
+    resetSession(reviewTasks, false);
+  } else if (isTest) {
     const tests = unit.test.slice(0, data.config.TEST_LENGTH);
-    resultLesson = { correct: 0, total: 0, xp: 0 };
+    resultLesson = { correct: 0, firstTryCorrect: 0, total: 0, xp: 0, errors: 0 };
     resetSession(tests, true);
+  } else if (requestedPractice) {
+    renderIntroduction();
+    startTasks({ free: true });
   } else if (requestedTheory) {
     renderIntroduction();
     showTheory();

@@ -71,8 +71,20 @@
       <p id="results-hint" hidden></p>
       <dl class="results-stats">
         <div class="stat-card">
-          <dt>Очки</dt>
+          <dt>Практика: правильные ответы</dt>
           <dd id="stat-score">0</dd>
+        </div>
+        <div class="stat-card" id="test-stat-card" hidden>
+          <dt>Тест</dt>
+          <dd id="stat-test">—</dd>
+        </div>
+        <div class="stat-card">
+          <dt>Ошибки попытки</dt>
+          <dd id="stat-errors">0</dd>
+        </div>
+        <div class="stat-card">
+          <dt>Сердца осталось</dt>
+          <dd id="stat-hearts">5</dd>
         </div>
         <div class="stat-card">
           <dt>Точность</dt>
@@ -95,7 +107,7 @@
     </section>
 
     <section aria-labelledby="results-goals-title" id="results-goals-section">
-      <h2 id="results-goals-title">Что изучено</h2>
+      <h2 id="results-goals-title">Темы урока</h2>
       <ul id="results-goals" class="results-goals"></ul>
     </section>
 
@@ -109,6 +121,10 @@
       <a class="btn btn--primary" href="lesson.html?id=b1" id="next-bonus-link" hidden>Перейти к бонусу</a>
       <a class="btn btn--secondary" href="lesson.html?id=1&amp;mode=test" id="retake-test-link" hidden>Пересдать тест</a>
       <a class="btn btn--secondary" href="lesson.html?id=1&amp;mode=theory" id="retry-lesson-link" hidden>Повторить теорию</a>
+      <a class="btn btn--secondary" href="lesson.html?id=1&amp;mode=practice" id="repeat-practice-link" hidden>Повторить практику без потери сердец</a>
+      <a class="btn btn--secondary" href="review.html" id="review-errors-link" hidden>Работа над ошибками (0)</a>
+      <a class="btn btn--secondary" href="lesson.html?id=1&amp;mode=restart" id="restart-hearts-link" hidden>Начать урок заново и восстановить сердца</a>
+      <p id="results-no-hearts" hidden></p>
       <a class="btn btn--secondary" href="learn.html" id="learn-map-link">К карте уроков</a>
       <p id="all-lessons-complete" hidden>Ты прошёл все уроки!</p>
     </nav>
