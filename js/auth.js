@@ -18,6 +18,7 @@ window.MEGA = window.MEGA || {};
   let state = {
     ready: false,
     status: "guest",
+    userId: "",
     email: "",
     recovery: false,
     connection: "initializing",
@@ -36,6 +37,7 @@ window.MEGA = window.MEGA || {};
     state = {
       ready: true,
       status: "guest",
+      userId: "",
       email: "",
       recovery: false,
       connection,
@@ -89,6 +91,7 @@ window.MEGA = window.MEGA || {};
   function updateUser(session) {
     const user = session && session.user;
     state.status = user ? "authenticated" : "guest";
+    state.userId = user && typeof user.id === "string" ? user.id : "";
     state.email = user && typeof user.email === "string" ? user.email : "";
   }
 
@@ -242,6 +245,100 @@ window.MEGA = window.MEGA || {};
     });
   }
 
+  function normalizeDisplayName(value) {
+    if (typeof value !== "string") return { ok: false, reason: "invalid-name" };
+    const displayName = value.replace(/^ +| +$/g, "");
+    const length = Array.from(displayName).length;
+    if (length < 1 || length > 40) return { ok: false, reason: "invalid-name" };
+    return { ok: true, displayName };
+  }
+
+  function currentProfileOwner() {
+    if (!client) return { ok: false, reason: unavailableReason() };
+    if (state.status !== "authenticated" || !state.userId) return { ok: false, reason: "not-authenticated" };
+    if (state.recovery) return { ok: false, reason: "recovery-active" };
+    return { ok: true, userId: state.userId };
+  }
+
+  function isCurrentProfileOwner(userId) {
+    return state.status === "authenticated" && !state.recovery && state.userId === userId;
+  }
+
+  async function loadProfileFor(userId) {
+    try {
+      const { data, error } = await client
+        .from("profiles")
+        .select("id,display_name")
+        .eq("id", userId)
+        .maybeSingle();
+      if (error) return { ok: false, reason: classifyProfileError(error) };
+      if (!isCurrentProfileOwner(userId)) return { ok: false, reason: "stale-session" };
+      return { ok: true, profile: data ? { id: data.id, display_name: data.display_name } : null };
+    } catch (error) {
+      return { ok: false, reason: classifyProfileError(error) };
+    }
+  }
+
+  function classifyProfileError(error) {
+    if (String(error && error.code || "") === "23505") return "profile-conflict";
+    if (String(error && error.code || "") === "23514") return "invalid-name";
+    return classifyError(error, "profile");
+  }
+
+  async function getProfile() {
+    const owner = currentProfileOwner();
+    if (!owner.ok) return owner;
+    return loadProfileFor(owner.userId);
+  }
+
+  async function createProfile(value) {
+    const name = normalizeDisplayName(value);
+    if (!name.ok) return name;
+    const owner = currentProfileOwner();
+    if (!owner.ok) return owner;
+
+    try {
+      const { data, error } = await client
+        .from("profiles")
+        .insert({ id: owner.userId, display_name: name.displayName })
+        .select("id,display_name")
+        .single();
+      if (error) {
+        if (String(error.code || "") === "23505" && isCurrentProfileOwner(owner.userId)) {
+          const latest = await loadProfileFor(owner.userId);
+          return { ok: false, reason: "profile-conflict", profile: latest.ok ? latest.profile : null };
+        }
+        return { ok: false, reason: classifyProfileError(error) };
+      }
+      if (!isCurrentProfileOwner(owner.userId)) return { ok: false, reason: "stale-session" };
+      return { ok: true, profile: { id: data.id, display_name: data.display_name } };
+    } catch (error) {
+      return { ok: false, reason: classifyProfileError(error) };
+    }
+  }
+
+  async function updateProfile(value) {
+    const name = normalizeDisplayName(value);
+    if (!name.ok) return name;
+    const owner = currentProfileOwner();
+    if (!owner.ok) return owner;
+
+    try {
+      const { data, error } = await client
+        .from("profiles")
+        .update({ display_name: name.displayName })
+        .eq("id", owner.userId)
+        .select("id,display_name")
+        .maybeSingle();
+      if (error) return { ok: false, reason: classifyProfileError(error) };
+      if (!isCurrentProfileOwner(owner.userId)) return { ok: false, reason: "stale-session" };
+      if (!data) return { ok: false, reason: "profile-not-updated" };
+      return { ok: true, profile: { id: data.id, display_name: data.display_name } };
+    } catch (error) {
+      return { ok: false, reason: classifyProfileError(error) };
+    }
+  }
+
   function getState() {
     return snapshot();
   }
@@ -293,6 +390,9 @@ window.MEGA = window.MEGA || {};
     requestPasswordReset,
     updatePassword,
     signOut,
+    getProfile,
+    createProfile,
+    updateProfile,
     getAvailability() {
       if (window.location.protocol !== "http:" && window.location.protocol !== "https:") return "local-server-required";
       if (state.connection === "unconfigured") return "unconfigured";

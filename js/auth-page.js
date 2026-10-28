@@ -11,12 +11,25 @@ window.MEGA = window.MEGA || {};
   const signUpForm = document.querySelector("#auth-sign-up-form");
   const resetForm = document.querySelector("#auth-reset-request-form");
   const passwordUpdateForm = document.querySelector("#auth-password-update-form");
+  const profilePanel = document.querySelector("[data-profile-panel]");
+  const profileStatus = document.querySelector("[data-profile-status]");
+  const profileName = document.querySelector("[data-profile-name]");
+  const profileForm = document.querySelector("[data-profile-form]");
+  const profileInput = document.querySelector("#profile-display-name");
+  const profileNameError = document.querySelector("#profile-name-error");
+  const profileEditButton = document.querySelector("[data-profile-edit]");
+  const profileCancelButton = document.querySelector("[data-profile-cancel]");
+  const profileRetryButton = document.querySelector("[data-profile-retry]");
   const views = [initializingView, unavailableView, guestView, accountView, recoveryView];
   let guestMessage = "";
   let guestMessageIsError = false;
   let accountMessage = "";
   let recoveryMessage = "";
   let currentMode = "sign-in";
+  let profileOwnerId = null;
+  let profileGeneration = 0;
+  let savedDisplayName = null;
+  let profileSaving = false;
 
   function setVisibleView(targetView) {
     for (const view of views) {
@@ -70,6 +83,150 @@ window.MEGA = window.MEGA || {};
     signInForm.hidden = mode !== "sign-in";
     signUpForm.hidden = mode !== "sign-up";
     resetForm.hidden = mode !== "reset";
+  }
+
+  function setProfileMessage(message, isError = false) {
+    setMessage(profileStatus, message, isError);
+  }
+
+  function clearProfileFieldError() {
+    profileInput.removeAttribute("aria-invalid");
+    profileNameError.textContent = "";
+    profileNameError.hidden = true;
+  }
+
+  function setProfileBusy(busy) {
+    const submitButton = profileForm.querySelector("button[type=submit]");
+    const cancelButton = profileCancelButton;
+    if (submitButton) submitButton.disabled = busy;
+    if (cancelButton) cancelButton.disabled = busy;
+    profileForm.setAttribute("aria-busy", String(busy));
+  }
+
+  function clearProfileView() {
+    savedDisplayName = null;
+    profileSaving = false;
+    profilePanel.hidden = true;
+    profileName.hidden = true;
+    profileName.textContent = "";
+    profileInput.value = "";
+    profileForm.hidden = true;
+    profileEditButton.hidden = true;
+    profileCancelButton.hidden = true;
+    profileRetryButton.hidden = true;
+    setProfileBusy(false);
+    clearProfileFieldError();
+    setProfileMessage("");
+  }
+
+  function profileContextIsCurrent(userId, generation) {
+    const current = auth.getState();
+    return profileGeneration === generation
+      && profileOwnerId === userId
+      && current.ready
+      && current.status === "authenticated"
+      && !current.recovery
+      && current.userId === userId;
+  }
+
+  function renderLoadedProfile(profile, options = {}) {
+    savedDisplayName = profile ? profile.display_name : null;
+    profilePanel.hidden = false;
+    profileRetryButton.hidden = true;
+    if (savedDisplayName === null) {
+      profileName.hidden = true;
+      profileName.textContent = "";
+      profileForm.hidden = false;
+      profileEditButton.hidden = true;
+      profileCancelButton.hidden = true;
+      if (!options.preserveDraft) profileInput.value = "";
+      setProfileMessage("Профиль ещё не создан. Введи имя, которое будет видно в аккаунте.");
+      return;
+    }
+
+    profileName.textContent = `Имя: ${savedDisplayName}`;
+    profileName.hidden = false;
+    if (options.preserveDraft && options.draft !== savedDisplayName) {
+      profileInput.value = options.draft;
+      profileForm.hidden = false;
+      profileEditButton.hidden = true;
+      profileCancelButton.hidden = false;
+      setProfileMessage("Профиль загружен. Чтобы сохранить введённый вариант, нажми «Сохранить» ещё раз.");
+    } else {
+      profileInput.value = savedDisplayName;
+      profileForm.hidden = true;
+      profileEditButton.hidden = false;
+      profileCancelButton.hidden = true;
+      setProfileMessage("");
+    }
+  }
+
+  async function loadProfile(userId, generation, options = {}) {
+    if (!profileContextIsCurrent(userId, generation)) return;
+    const draft = profileInput.value;
+    const result = await auth.getProfile();
+    if (!profileContextIsCurrent(userId, generation)) return;
+    if (result.ok) {
+      renderLoadedProfile(result.profile, { preserveDraft: options.preserveDraft, draft });
+      return;
+    }
+
+    profilePanel.hidden = false;
+    profileName.hidden = true;
+    profileForm.hidden = true;
+    profileRetryButton.hidden = false;
+    setProfileMessage(profileErrorMessage(result.reason, "load"), true);
+  }
+
+  function profileErrorMessage(reason, operation) {
+    if (reason === "invalid-name") return "Введи имя длиной от 1 до 40 символов.";
+    if (reason === "profile-conflict") return "Профиль уже создан в другой вкладке. Сверь введённое имя с сохранённым и нажми «Сохранить» ещё раз.";
+    if (reason === "profile-not-updated") return "Профиль не был обновлён. Перезагрузи его и повтори попытку.";
+    if (reason === "network") return "Не удалось связаться с сервисом. Проверь подключение и попробуй ещё раз.";
+    if (reason === "not-authenticated" || reason === "stale-session") return "Сеанс аккаунта изменился. Открой профиль снова.";
+    if (operation === "load") return "Не удалось загрузить профиль. Попробуй ещё раз.";
+    return "Не удалось сохранить имя. Проверь введённое значение и попробуй ещё раз.";
+  }
+
+  function onAuthState(state) {
+    render(state);
+    const userId = state && state.ready && state.status === "authenticated" && !state.recovery
+      ? state.userId
+      : "";
+    if (userId === profileOwnerId) return;
+
+    profileGeneration += 1;
+    const generation = profileGeneration;
+    profileOwnerId = userId;
+    clearProfileView();
+    if (!userId) return;
+
+    profilePanel.hidden = false;
+    setProfileMessage("Загружаем профиль…");
+    window.setTimeout(() => loadProfile(userId, generation), 0);
+  }
+
+  function retryProfileLoad() {
+    const userId = profileOwnerId;
+    if (!userId) return;
+    const draft = profileInput.value;
+    profileGeneration += 1;
+    const generation = profileGeneration;
+    profilePanel.hidden = false;
+    profileName.hidden = true;
+    profileForm.hidden = true;
+    profileRetryButton.hidden = true;
+    setProfileMessage("Загружаем профиль…");
+    profileInput.value = draft;
+    window.setTimeout(() => loadProfile(userId, generation, { preserveDraft: true }), 0);
+  }
+
+  function displayNameValidation(value) {
+    const displayName = value.replace(/^ +| +$/g, "");
+    const length = Array.from(displayName).length;
+    if (length < 1) return { ok: false, message: "Введи имя. Одни пробелы не подходят." };
+    if (length > 40) return { ok: false, message: "Имя должно содержать не больше 40 символов." };
+    return { ok: true, displayName };
   }
 
   function availabilityMessage(reason) {
@@ -192,6 +349,80 @@ window.MEGA = window.MEGA || {};
     });
   });
 
+  profileEditButton.addEventListener("click", () => {
+    if (savedDisplayName === null) return;
+    clearProfileFieldError();
+    profileInput.value = savedDisplayName;
+    profileName.hidden = true;
+    profileForm.hidden = false;
+    profileEditButton.hidden = true;
+    profileCancelButton.hidden = false;
+    setProfileMessage("");
+    profileInput.focus();
+  });
+
+  profileCancelButton.addEventListener("click", () => {
+    if (savedDisplayName === null || profileSaving) return;
+    profileInput.value = savedDisplayName;
+    clearProfileFieldError();
+    profileForm.hidden = true;
+    profileName.hidden = false;
+    profileEditButton.hidden = false;
+    profileCancelButton.hidden = true;
+    setProfileMessage("");
+  });
+
+  profileRetryButton.addEventListener("click", retryProfileLoad);
+
+  profileForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if (profileSaving) return;
+    const userId = profileOwnerId;
+    const generation = profileGeneration;
+    if (!userId || !profileContextIsCurrent(userId, generation)) return;
+
+    clearProfileFieldError();
+    const validation = displayNameValidation(profileInput.value);
+    if (!validation.ok) {
+      profileInput.setAttribute("aria-invalid", "true");
+      profileNameError.textContent = validation.message;
+      profileNameError.hidden = false;
+      profileInput.focus();
+      return;
+    }
+
+    profileSaving = true;
+    setProfileBusy(true);
+    setProfileMessage("Сохраняем имя…");
+    try {
+      const result = savedDisplayName === null
+        ? await auth.createProfile(validation.displayName)
+        : await auth.updateProfile(validation.displayName);
+      if (!profileContextIsCurrent(userId, generation)) return;
+
+      if (result.ok) {
+        renderLoadedProfile(result.profile);
+        setProfileMessage("Имя сохранено.");
+        return;
+      }
+
+      if (result.reason === "profile-conflict" && result.profile) {
+        savedDisplayName = result.profile.display_name;
+        profileName.textContent = `Сохранённое имя: ${savedDisplayName}`;
+        profileName.hidden = false;
+        profileForm.hidden = false;
+        profileEditButton.hidden = true;
+        profileCancelButton.hidden = false;
+      }
+      setProfileMessage(profileErrorMessage(result.reason, "save"), true);
+    } finally {
+      if (profileContextIsCurrent(userId, generation)) {
+        profileSaving = false;
+        setProfileBusy(false);
+      }
+    }
+  });
+
   signInForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     clearGuestMessage();
@@ -288,6 +519,9 @@ window.MEGA = window.MEGA || {};
 
   document.querySelector("[data-auth-sign-out]").addEventListener("click", async (event) => {
     const button = event.currentTarget;
+    profileGeneration += 1;
+    profileOwnerId = null;
+    clearProfileView();
     button.disabled = true;
     const result = await auth.signOut();
     button.disabled = false;
@@ -296,10 +530,10 @@ window.MEGA = window.MEGA || {};
       guestMessageIsError = false;
     } else {
       accountMessage = errorMessage(result.reason, "sign-out");
-      render(auth.getState());
+      onAuthState(auth.getState());
     }
   });
 
-  window.addEventListener("mega-auth-state", (event) => render(event.detail));
-  render(auth.getState());
+  window.addEventListener("mega-auth-state", (event) => onAuthState(event.detail));
+  onAuthState(auth.getState());
 })();

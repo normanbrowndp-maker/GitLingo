@@ -128,6 +128,21 @@
         <p class="auth-session-status">Выполнен вход</p>
         <p class="auth-account-email" data-auth-email></p>
         <p class="auth-message" data-auth-account-message role="status" aria-live="polite"></p>
+        <section class="auth-profile" data-profile-panel aria-labelledby="profile-title" hidden>
+          <h2 id="profile-title">Профиль</h2>
+          <p class="auth-message" data-profile-status role="status" aria-live="polite"></p>
+          <p class="auth-profile-name" data-profile-name hidden></p>
+          <button type="button" class="auth-text-button" data-profile-edit hidden>Изменить имя</button>
+          <button type="button" class="auth-text-button" data-profile-retry hidden>Повторить загрузку</button>
+          <form class="auth-form" data-profile-form hidden novalidate>
+            <label for="profile-display-name">Как тебя называть?</label>
+            <input id="profile-display-name" name="display_name" type="text" autocomplete="nickname" required maxlength="80" aria-describedby="profile-name-hint profile-name-error">
+            <p class="auth-field-hint" id="profile-name-hint">От 1 до 40 символов. Имя не является логином.</p>
+            <p class="auth-field-error" id="profile-name-error" hidden></p>
+            <button type="submit" class="btn btn--primary auth-submit">Сохранить</button>
+            <button type="button" class="auth-text-button" data-profile-cancel hidden>Отмена</button>
+          </form>
+        </section>
         <button type="button" class="btn btn--secondary auth-submit" data-auth-sign-out>Выйти</button>
       </section>
 

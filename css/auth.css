@@ -170,6 +170,35 @@
   overflow-wrap: anywhere;
 }
 
+.auth-profile {
+  display: grid;
+  min-width: 0;
+  gap: 0.65rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--border);
+}
+
+.auth-profile h2 {
+  margin: 0;
+  font-size: 1.2rem;
+  text-align: center;
+}
+
+.auth-profile-name {
+  margin: 0;
+  color: var(--text);
+  font-size: 1.05rem;
+  font-weight: 800;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.auth-field-hint {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+}
+
 .page-auth .site-header__nav a[data-auth-nav-link] {
   color: var(--brand);
 }
