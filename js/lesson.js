@@ -3,8 +3,11 @@
   const search = new URLSearchParams(window.location.search);
   const requestedId = search.get("id");
   const requestedMode = search.get("mode");
+  if (requestedMode === "review") {
+    window.location.replace("review.html");
+    return;
+  }
   const requestedTheory = requestedMode === "theory";
-  const requestedReview = requestedMode === "review";
   const requestedPractice = requestedMode === "practice";
   const requestedRestart = requestedMode === "restart";
   const unit = data.lessons.find((lesson) => String(lesson.id) === requestedId)
@@ -36,7 +39,6 @@
 
   const isBonus = data.bonuses.includes(unit);
   let isTest = !isBonus && requestedMode === "test";
-  const isReview = requestedReview;
   let isFreePractice = requestedPractice;
   const lessonId = unit.id;
   const profileLevel = state.get().profile.level;
@@ -97,8 +99,6 @@
   let continuingTask = false;
   let progressPulseTimer = null;
   let xpPopupTimer = null;
-  let currentReviewItem = null;
-  let reviewCorrect = 0;
   let lastMistakeSave = null;
 
   function setScreen(nextScreen) {
@@ -354,9 +354,7 @@
   function renderTask(task) {
     clearBuilderAnimations();
     builderStatus.textContent = "";
-    currentReviewItem = isReview ? task : null;
-    currentTask = isReview ? task.task : task;
-    task = currentTask;
+    currentTask = task;
     currentSection = templates.find((section) => section.dataset.taskTemplate === task.type);
     selectedAnswer = null;
     selectedBlocks = [];
@@ -384,7 +382,6 @@
   function renderNext() {
     if (queue.length === 0) {
       if (isTest) finishTest();
-      else if (isReview) finishReview();
       else if (isFreePractice) finishPractice();
       else if (isBonus) finishBonus();
       else beginTest();
@@ -423,8 +420,6 @@
         button.disabled = true;
       }
       builderClearButton.disabled = true;
-    } else if (currentTask.type === "matching" && isReview) {
-      for (const button of currentSection.querySelectorAll("button[data-pair-index]")) button.disabled = true;
     }
   }
 
@@ -500,10 +495,10 @@
   }
 
   function currentTaskInfo() {
-    const phase = isTest ? "test" : (currentReviewItem?.phase || "practice");
+    const phase = isTest ? "test" : "practice";
     const unitKind = isBonus ? "bonus" : "lesson";
     const tasks = isBonus ? unit.tasks : (phase === "test" ? unit.test.slice(0, data.config.TEST_LENGTH) : unit.tasks);
-    const taskIndex = isReview ? currentReviewItem.taskIndex : tasks.indexOf(currentTask);
+    const taskIndex = tasks.indexOf(currentTask);
     return {
       id: state.questionId(unitKind, String(lessonId), phase, taskIndex, currentTask),
       unitKind,
@@ -525,10 +520,9 @@
     noErrors = false;
     wrongAnswers += 1;
     attemptsByTask.set(currentTask, (attemptsByTask.get(currentTask) || 0) + 1);
-    const losesHeart = !isReview && !isFreePractice && !wrongForCurrent;
-    const reviewVersion = isReview ? currentReviewItem.reviewVersion : null;
-    lastMistakeSave = state.recordQuestionError(currentTaskInfo(), currentUserAnswer(answer), losesHeart, reviewVersion);
-    if (!isReview && !isFreePractice) wrongForCurrent = true;
+    const losesHeart = !isFreePractice && !wrongForCurrent;
+    lastMistakeSave = state.recordQuestionError(currentTaskInfo(), currentUserAnswer(answer), losesHeart);
+    if (!isFreePractice) wrongForCurrent = true;
     if (lastMistakeSave.ok && lastMistakeSave.saved && losesHeart) loseLifeAfterBreak();
     return lastMistakeSave;
   }
@@ -549,31 +543,6 @@
 
   function handleCorrect() {
     if (!currentTask || feedback.classList.contains("is-visible")) return;
-    if (isReview) {
-      const result = state.resolveReviewQuestion(currentReviewItem.id, currentReviewItem.reviewVersion);
-      if (result.ok && result.closed) {
-        queue.shift();
-        reviewCorrect += 1;
-        lives = result.hearts;
-        livesCount.textContent = String(lives);
-        livesContainer.classList.toggle("lives--empty", lives === 0);
-        setProgress(reviewCorrect, true);
-        openFeedback(true);
-        successPanel.querySelector("span").textContent = "Ошибка исправлена. Возвращено 1 сердце.";
-        return;
-      }
-      if (result.ok) {
-        queue.shift();
-        openFeedback(true);
-        successPanel.querySelector("span").textContent = "Эта ошибка уже закрыта или изменилась в другой вкладке. Сердце повторно не начислено.";
-        return;
-      }
-      queue.shift();
-      queue.push(currentReviewItem);
-      openFeedback(true);
-      successPanel.querySelector("span").textContent = "Ответ правильный, но исправление не удалось сохранить. Сердце не начислено; вопрос остался в очереди.";
-      return;
-    }
     const firstAttempt = (attemptsByTask.get(currentTask) || 0) === 0;
     if (firstAttempt && !isTest) firstTryCorrect += 1;
     if (isTest) {
@@ -597,10 +566,7 @@
     if (!currentTask || feedback.classList.contains("is-visible")) return;
     recordWrong();
 
-    if (isReview) {
-      queue.shift();
-      queue.push(currentReviewItem);
-    } else if (!isTest) {
+    if (!isTest) {
       queue.shift();
       queue.push(currentTask);
     } else {
@@ -624,7 +590,7 @@
 
     if (selectedTerm === null) return;
     const termButton = currentSection.querySelector(`[data-match-side="term"][data-pair-index="${selectedTerm}"]`);
-    if (selectedTerm === index) {
+    if (window.MEGA.taskChecks.matchingPair(Number(selectedTerm), Number(index))) {
       matchedPairs.add(index);
       termButton.classList.remove("is-selected");
       termButton.classList.add("is-matched", "is-disabled");
@@ -639,17 +605,7 @@
       return;
     }
 
-    const answer = { kind: "matching", pairs: [{ termIndex: Number(selectedTerm), definitionIndex: Number(index) }] };
-    const mistake = recordWrong(answer);
-    if (isReview) {
-      if (!mistake || !mistake.saved) {
-        lastMistakeSave = mistake || { saved: false, stale: false };
-      }
-      queue.shift();
-      queue.push(currentReviewItem);
-      openFeedback(false);
-      return;
-    }
+    recordWrong({ kind: "matching", pairs: [{ termIndex: Number(selectedTerm), definitionIndex: Number(index) }] });
     termButton.classList.remove("is-selected");
     termButton.classList.add("is-wrong");
     button.classList.add("is-wrong");
@@ -746,10 +702,9 @@
     if (!currentTask || checkButton.disabled || feedback.classList.contains("is-visible")) return;
     let correct = false;
     if (currentTask.type === "choice" || currentTask.type === "hotkeys") {
-      correct = selectedAnswer === currentTask.answer;
+      correct = window.MEGA.taskChecks.option(currentTask, selectedAnswer);
     } else if (currentTask.type === "builder") {
-      correct = selectedBlocks.length === currentTask.answer.length
-        && selectedBlocks.every((block, index) => block === currentTask.answer[index]);
+      correct = window.MEGA.taskChecks.builder(currentTask, selectedBlocks);
     }
     if (correct) handleCorrect();
     else handleIncorrect();
@@ -905,40 +860,7 @@
     });
   }
 
-  function finishReview() {
-    window.location.href = "review.html?done=1";
-  }
-
-  function getReviewTasks() {
-    const saved = state.get().mistakes;
-    const expectedKind = isBonus ? "bonus" : "lesson";
-    const unitIdText = String(lessonId);
-    const items = [];
-    for (const entry of saved) {
-      if (!entry.needsReview || entry.unitKind !== expectedKind || entry.unitId !== unitIdText) continue;
-      const tasks = entry.phase === "test" && !isBonus
-        ? unit.test.slice(0, data.config.TEST_LENGTH)
-        : unit.tasks;
-      const task = tasks[entry.taskIndex];
-      if (!task) continue;
-      const id = state.questionId(entry.unitKind, entry.unitId, entry.phase, entry.taskIndex, task);
-      if (id !== entry.id || task.type !== entry.type) continue;
-      items.push({
-        task,
-        id: entry.id,
-        phase: entry.phase,
-        taskIndex: entry.taskIndex,
-        reviewVersion: entry.reviewVersion
-      });
-    }
-    return items;
-  }
-
   function finishInterruptedAttempt() {
-    if (isReview) {
-      window.location.href = "review.html";
-      return;
-    }
     if (isTest) {
       finishTest(true);
       return;
@@ -1118,16 +1040,7 @@
     }
   });
 
-  if (isReview) {
-    const reviewTasks = getReviewTasks();
-    if (!reviewTasks.length) {
-      window.location.replace("review.html");
-      return;
-    }
-    reviewCorrect = 0;
-    taskGuidance.textContent = "Ответьте самостоятельно. Неверный ответ покажет разбор и оставит вопрос в очереди; сердца и опыт за разбор не списываются и не начисляются.";
-    resetSession(reviewTasks, false);
-  } else if (isTest) {
+  if (isTest) {
     const tests = unit.test.slice(0, data.config.TEST_LENGTH);
     resultLesson = { correct: 0, firstTryCorrect: 0, total: 0, xp: 0, errors: 0 };
     resetSession(tests, true);

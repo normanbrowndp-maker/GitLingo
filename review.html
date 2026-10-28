@@ -21,6 +21,7 @@
   <link rel="stylesheet" href="css/pages.css">
   <script src="js/storage.js" defer></script>
   <script src="js/data/lessons.js" defer></script>
+  <script src="js/task-checks.js" defer></script>
   <script src="js/ui.js" defer></script>
   <script src="js/theme.js" defer></script>
   <script src="js/nav.js" defer></script>
@@ -28,6 +29,7 @@
 </head>
 <body class="page-review">
   <svg class="icon-sprite" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+    <symbol id="icon-heart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 8.8c0 5.1-8.8 11-8.8 11s-8.8-5.9-8.8-11a4.8 4.8 0 0 1 8.8-2.6 4.8 4.8 0 0 1 8.8 2.6Z"/></symbol>
     <symbol id="icon-fire" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c4.4 0 7-3.1 7-7.2 0-3.1-1.8-5.8-4.8-8.8.1 2.4-.7 3.7-2 4.5C12.3 6.8 10.5 3.9 7.3 2 8 6.5 4 9 4 14.6 4 19 7.1 22 12 22Z"/><path d="M12 22c-2.2 0-3.5-1.5-3.5-3.5 0-1.7 1-3 2.7-4.5.1 1.3.6 2 1.4 2.5.1-1 .6-1.8 1.4-2.5.5 1.2 1.5 2.4 1.5 4.3 0 2.1-1.4 3.7-3.5 3.7Z"/></symbol>
     <symbol id="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M20.1 15.7A8.5 8.5 0 0 1 8.3 3.9 8.6 8.6 0 1 0 20.1 15.7Z"/></symbol>
     <symbol id="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></symbol>
@@ -51,18 +53,82 @@
   </header>
 
   <main class="review-main">
-    <section class="review-card" aria-labelledby="review-title">
-      <h1 id="review-title">Работа над ошибками</h1>
-      <p id="review-total" role="status" aria-live="polite">Загружаем очередь…</p>
-      <p id="review-empty" class="review-empty" hidden></p>
-      <div id="review-groups" class="review-groups"></div>
+    <section id="review-home" class="review-screen review-home" aria-labelledby="review-title">
+      <header class="review-page-heading">
+        <div>
+          <h1 id="review-title" tabindex="-1">Работа над ошибками</h1>
+          <p>Отвечайте самостоятельно. Неверный ответ покажет разбор и оставит вопрос в очереди; правильный исправит ошибку и вернёт не более одного сердца. Подборки идут до пяти вопросов.</p>
+        </div>
+        <div class="review-overview" aria-live="polite">
+          <p id="review-total">Загружаем очередь…</p>
+          <p class="review-hearts"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-heart"></use></svg><span>Сердца</span><strong id="review-hearts-count">—</strong></p>
+        </div>
+      </header>
+      <p id="review-storage-error" class="review-empty" role="status" hidden></p>
+      <section id="review-empty" class="review-empty" aria-labelledby="review-empty-title" hidden>
+        <h2 id="review-empty-title">Все ошибки разобраны</h2>
+        <p>Здесь появятся вопросы после проверенных неправильных ответов. Можно продолжить обучение на карте.</p>
+        <a class="btn btn--primary" href="learn.html">К карте уроков</a>
+      </section>
+      <section id="review-available" class="review-available" aria-label="Вопросы для повторения">
+        <button type="button" id="review-start-all" class="btn btn--primary" hidden>Разобрать все</button>
+        <div id="review-groups" class="review-groups"></div>
+      </section>
       <section id="review-stale-section" class="review-stale-section" aria-labelledby="review-stale-title" hidden>
         <h2 id="review-stale-title">Недоступные вопросы</h2>
-        <p>Эти вопросы удалены или изменены в банке. Они не появятся в разборе и не начислят сердца.</p>
+        <p>Эти вопросы удалены или несовместимо изменены. Они не попадут в подборку и не дадут сердца.</p>
         <ul id="review-stale-list" class="review-stale-list"></ul>
       </section>
-      <p id="review-message" class="review-message" role="status" aria-live="polite"></p>
-      <a class="btn btn--secondary" href="learn.html">К карте уроков</a>
+    </section>
+
+    <section id="review-session" class="review-screen review-session" aria-labelledby="review-session-title" hidden>
+      <header class="review-session__header">
+        <button type="button" id="review-session-exit" class="btn btn--secondary">К списку ошибок</button>
+        <div>
+          <h1 id="review-session-title" tabindex="-1">Работа над ошибками</h1>
+          <p id="review-session-topic"></p>
+        </div>
+        <div class="review-session__stats" aria-live="polite">
+          <p id="review-question-count">Вопрос 1 из 1</p>
+          <p id="review-fixed-count">Исправлено: 0</p>
+          <p class="review-hearts"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-heart"></use></svg><span>Сердца</span><strong id="review-session-hearts">—</strong></p>
+        </div>
+      </header>
+      <progress id="review-progress" max="1" value="0" aria-label="Обработанные вопросы подборки"></progress>
+      <section class="review-task-card" aria-labelledby="review-question-title">
+        <p id="review-task-phase" class="review-task-card__phase"></p>
+        <h2 id="review-question-title" tabindex="-1"></h2>
+        <p id="review-instruction" class="review-task-card__instruction"></p>
+        <div id="review-task-body" class="review-task-body"></div>
+      </section>
+      <section id="review-feedback" class="review-feedback" role="status" aria-live="polite" hidden>
+        <h2 id="review-feedback-title"></h2>
+        <div id="review-feedback-content"></div>
+        <div class="review-feedback__actions">
+          <button type="button" id="review-save-retry" class="btn btn--secondary" hidden>Повторить сохранение</button>
+          <button type="button" id="review-continue" class="btn btn--primary" hidden>Продолжить</button>
+        </div>
+      </section>
+      <div class="review-session__footer">
+        <button type="button" id="review-check" class="btn btn--primary" disabled>Проверить</button>
+      </div>
+    </section>
+
+    <section id="review-summary" class="review-screen review-summary" aria-labelledby="review-summary-title" hidden>
+      <h1 id="review-summary-title" tabindex="-1">Подборка завершена</h1>
+      <dl class="review-summary__stats">
+        <div><dt>Рассмотрено</dt><dd id="review-summary-reviewed">0</dd></div>
+        <div><dt>Исправлено</dt><dd id="review-summary-fixed">0</dd></div>
+        <div><dt>Сердец возвращено</dt><dd id="review-summary-hearts">0</dd></div>
+        <div><dt>Осталось в очереди</dt><dd id="review-summary-all-left">0</dd></div>
+        <div id="review-summary-topic-row" hidden><dt>Осталось в этой теме</dt><dd id="review-summary-topic-left">0</dd></div>
+      </dl>
+      <p id="review-summary-message" role="status" aria-live="polite"></p>
+      <nav class="review-summary__actions" aria-label="Действия после подборки">
+        <button type="button" id="review-summary-continue" class="btn btn--primary" hidden>Продолжить разбор</button>
+        <button type="button" id="review-summary-list" class="btn btn--secondary">К списку ошибок</button>
+        <a class="btn btn--secondary" href="learn.html">К карте уроков</a>
+      </nav>
     </section>
   </main>
 

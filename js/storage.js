@@ -315,6 +315,45 @@ window.MEGA = window.MEGA || {};
     return snapshot;
   }
 
+  function refreshState() {
+    let raw;
+    try {
+      raw = localStorage.getItem(key);
+    } catch (error) {
+      markProtected("storage-unavailable", null, error && error.name === "SecurityError" ? "access-denied" : "read-failed");
+      return { ok: false };
+    }
+    if (raw === null) {
+      if (status.kind !== "missing" && status.hasSavedState) {
+        markProtected("storage-unavailable", null, "saved-state-removed");
+        return { ok: false };
+      }
+      state = createDefaultState();
+      status = makeStatus("missing", { hasSavedState: false });
+      return { ok: true, state: getState() };
+    }
+    let parsed;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      markProtected("corrupt-json", raw, "syntax-error");
+      return { ok: false };
+    }
+    const checked = validateAndMigrate(parsed);
+    if (checked.error) {
+      markProtected(checked.error, raw);
+      return { ok: false };
+    }
+    if (checked.changed) {
+      state = checked.state;
+      markProtected("migration-write-failed", raw, "refresh-migration-required");
+      return { ok: false };
+    }
+    state = checked.state;
+    status = makeStatus("ok", { hasSavedState: true });
+    return { ok: true, state: getState() };
+  }
+
   function getCloudSnapshot() {
     if (!['ok', 'missing', 'migration-pending'].includes(status.kind) || status.lastWriteError) {
       return { ok: false, reason: 'local-state-unavailable' };
@@ -484,14 +523,15 @@ window.MEGA = window.MEGA || {};
     const next = clone(state);
     const entry = next.mistakes.find((mistake) => mistake.id === id);
     if (!entry || !entry.needsReview || entry.reviewVersion !== reviewVersion) {
-      return { ok: true, closed: false, hearts: state.hearts };
+      return { ok: true, closed: false, hearts: state.hearts, heartsAwarded: 0 };
     }
+    const heartsBefore = state.hearts;
     entry.needsReview = false;
     next.hearts = Math.min(5, next.hearts + 1);
     const result = persist(next);
     return result.ok
-      ? { ok: true, closed: true, hearts: state.hearts }
-      : { ok: false, closed: false, hearts: state.hearts, reason: result.error };
+      ? { ok: true, closed: true, hearts: state.hearts, heartsAwarded: state.hearts - heartsBefore }
+      : { ok: false, closed: false, hearts: state.hearts, heartsAwarded: 0, reason: result.error };
   }
 
   function removeMistake(id) {
@@ -522,6 +562,7 @@ window.MEGA = window.MEGA || {};
 
   window.MEGA.state = {
     get: getState,
+    refresh: refreshState,
     save: saveState,
     getStorageStatus() {
       return clone(status);

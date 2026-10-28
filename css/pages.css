@@ -623,116 +623,111 @@
 }
 
 .page-review main {
-  display: grid;
-  width: min(100% - 2rem, 900px);
-  gap: 1.25rem;
+  width: min(100% - 2rem, 920px);
   margin-inline: auto;
+  padding-block: 1.25rem 2rem;
 }
 
-.review-card {
+.review-screen { min-width: 0; }
+.review-home, .review-session, .review-summary { display: grid; gap: 1rem; }
+.review-page-heading, .review-session__header {
   display: grid;
-  min-width: 0;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
   gap: 1rem;
-  padding: clamp(1rem, 4vw, 2rem);
-  border: 2px solid var(--border);
+  padding: 1.1rem 1.25rem;
+  border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   background: var(--card);
-  box-shadow: var(--shadow);
 }
-
-.review-card > h1,
-.review-card > #review-total {
-  text-align: center;
-}
-
-.review-empty,
-.review-message {
-  padding: 1rem;
-  border-radius: var(--radius-md);
-  background: var(--bg);
-  color: var(--text);
-  text-align: center;
-}
-
-.review-groups {
-  display: grid;
-  gap: 1rem;
-}
-
+.review-page-heading h1, .review-session__header h1, .review-summary h1 { font-size: clamp(1.65rem, 4vw, 2.3rem); }
+.review-page-heading > div:first-child { display: grid; gap: 0.5rem; }
+.review-page-heading > div:first-child p, .review-session__header > div:nth-child(2) p,
+.review-task-card__instruction { color: var(--text-muted); }
+.review-overview, .review-session__stats { display: grid; gap: 0.4rem; justify-items: end; white-space: nowrap; }
+.review-hearts { display: inline-flex; align-items: center; gap: 0.4rem; color: var(--text); font-weight: 800; }
+.review-hearts .icon { color: var(--error-ink); }
+.review-available, .review-groups { display: grid; min-width: 0; gap: 0.8rem; }
+#review-start-all { justify-self: start; }
 .review-group {
-  display: grid;
-  min-width: 0;
-  gap: 0.75rem;
-  padding: 1rem;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--bg);
+  display: grid; min-width: 0; gap: 0.7rem; padding: 1rem;
+  border: 1px solid var(--border); border-left: 4px solid var(--lesson-accent, var(--brand));
+  border-radius: var(--radius-md); background: var(--card);
 }
-
-.review-group h2 {
-  font-size: 1.2rem;
+.review-group h2 { font-size: 1.15rem; }
+.review-group__count { color: var(--text-muted); font-weight: 800; }
+.review-group__questions { display: grid; gap: 0.4rem; }
+.review-group__question {
+  display: flex; min-width: 0; flex-wrap: wrap; align-items: baseline; gap: 0.5rem;
+  padding: 0.6rem 0.7rem; border-radius: var(--radius-md); background: var(--bg); overflow-wrap: anywhere;
 }
-
-.review-group ul,
-.review-stale-list {
-  display: grid;
-  gap: 0.55rem;
-  padding: 0;
-  list-style: none;
+.review-group__phase, .review-task-card__phase { color: var(--text-muted); font-size: 0.82rem; font-weight: 800; }
+.review-group > .btn { justify-self: start; }
+.review-empty {
+  display: grid; justify-items: center; gap: 0.6rem; padding: 1.25rem;
+  border: 1px dashed var(--border); border-radius: var(--radius-lg); background: var(--card); text-align: center;
 }
-
-.review-group li,
-.review-stale-list li {
-  display: flex;
-  min-width: 0;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.55rem;
-  padding: 0.7rem;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--card);
-  overflow-wrap: anywhere;
+.review-empty h2 { font-size: 1.3rem; }
+.review-stale-section { display: grid; gap: 0.7rem; padding: 1rem; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--bg); }
+.review-stale-section > p { color: var(--text-muted); }
+.review-stale-list { display: grid; gap: 0.5rem; }
+.review-stale-list__item {
+  display: flex; min-width: 0; flex-wrap: wrap; justify-content: space-between; align-items: center;
+  gap: 0.65rem; padding: 0.65rem; border-radius: var(--radius-md); background: var(--card); overflow-wrap: anywhere;
 }
-
-.review-group__phase {
-  flex: 0 0 auto;
-  padding: 0.2rem 0.5rem;
-  border-radius: var(--radius-pill);
-  background: var(--brand-soft);
-  color: var(--text);
-  font-size: 0.8rem;
-  font-weight: 800;
+.review-session__header { grid-template-columns: auto minmax(0, 1fr) auto; }
+.review-session__header > div:nth-child(2) { min-width: 0; }
+.review-session__stats { font-size: 0.9rem; }
+#review-progress { width: 100%; height: 0.7rem; accent-color: var(--brand); }
+.review-task-card {
+  display: grid; min-width: 0; gap: 0.75rem; padding: clamp(1rem, 3vw, 1.4rem);
+  border: 2px solid var(--border); border-radius: var(--radius-lg); background: var(--card);
 }
-
-.review-group .btn,
-.review-stale-list .btn {
-  justify-self: start;
-  white-space: normal;
+.review-task-card h2 { font-size: clamp(1.25rem, 3vw, 1.75rem); overflow-wrap: anywhere; }
+.review-option-grid, .review-builder, .review-matching { display: grid; min-width: 0; gap: 0.7rem; }
+.review-option-grid .choice-card, .review-hotkey { width: 100%; color: var(--text); }
+.review-option-grid .choice-card.is-selected, .review-hotkey.is-selected {
+  border-color: var(--brand); background: var(--brand-soft); box-shadow: 0 0 0 2px var(--brand);
 }
-
-.review-stale-section {
-  display: grid;
-  gap: 0.7rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--border);
+.review-option-grid--hotkeys { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.review-hotkey {
+  display: flex; min-height: 60px; align-items: center; justify-content: center; gap: 0.4rem; padding: 0.5rem;
+  border: 2px solid var(--border); border-radius: var(--radius-md); background: var(--card); color: var(--text);
+  box-shadow: 0 4px 0 var(--border); font-weight: 800;
 }
-
-.review-stale-section > p {
-  color: var(--text-muted);
+.review-builder__answer {
+  display: flex; min-height: 72px; flex-wrap: wrap; align-items: center; gap: 0.5rem; padding: 0.75rem;
+  border: 2px dashed var(--border); border-radius: var(--radius-md); background: var(--bg);
 }
-
-.review-stale-list li {
-  justify-content: space-between;
+.review-builder__hint { color: var(--text-muted); }
+.review-builder > .btn { justify-self: start; }
+.review-matching { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0.55rem; }
+.review-matching .matching-count { grid-column: 1 / -1; }
+.review-matching .lesson__matching-column button.is-selected { border-color: var(--brand); background: var(--brand-soft); }
+.review-feedback {
+  display: grid; gap: 0.65rem; padding: 1rem 1.1rem; border: 1px solid var(--border);
+  border-left: 5px solid var(--brand); border-radius: var(--radius-md); background: var(--card);
 }
-
-.review-card > .btn {
-  justify-self: center;
+.review-feedback > h2 { font-size: 1.2rem; }
+#review-feedback-content { display: grid; gap: 0.45rem; }
+.review-feedback__actions, .review-session__footer, .review-summary__actions { display: flex; flex-wrap: wrap; gap: 0.7rem; }
+.review-session__footer { justify-content: flex-end; }
+.review-summary { align-content: start; padding: 1.2rem; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--card); }
+.review-summary__stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.7rem; }
+.review-summary__stats > div { display: grid; min-width: 0; gap: 0.25rem; padding: 0.8rem; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--bg); }
+.review-summary__stats dt { color: var(--text-muted); font-size: 0.85rem; font-weight: 800; }
+.review-summary__stats dd { font-size: 1.5rem; font-weight: 850; }
+@media (max-width: 700px) {
+  .review-session__header { grid-template-columns: minmax(0, 1fr); align-items: start; }
+  .review-session__header > button { justify-self: start; }
+  .review-session__stats { grid-template-columns: repeat(3, minmax(0, 1fr)); justify-items: start; white-space: normal; }
 }
-
 @media (max-width: 480px) {
-  .review-card > .btn,
-  .review-stale-list .btn {
-    width: 100%;
-  }
+  .review-page-heading { grid-template-columns: minmax(0, 1fr); }
+  .review-overview { grid-template-columns: repeat(2, minmax(0, 1fr)); justify-items: start; white-space: normal; }
+  .review-option-grid--hotkeys, .review-summary__stats { grid-template-columns: minmax(0, 1fr); }
+  .review-group > .btn, .review-session__footer > .btn, .review-feedback__actions > .btn, .review-summary__actions > .btn { width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .page-review .choice-card, .page-review .chip, .page-review .btn { animation: none; transition: none; scroll-behavior: auto; }
 }
