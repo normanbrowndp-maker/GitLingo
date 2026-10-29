@@ -114,6 +114,20 @@
   margin-inline: auto;
 }
 
+.course-entry {
+  width: min(100%, 920px);
+  margin-inline: auto;
+  padding: clamp(1rem, 3vw, 1.5rem);
+  border: 2px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--card);
+}
+
+.course-entry > p { max-width: 58ch; margin-inline: auto; text-align: center; color: var(--text-muted); }
+.course-node-list { width: min(100%, 680px); }
+.course-node-list li { min-height: 92px; }
+.course-node-list .lesson-node[aria-disabled="true"] { cursor: not-allowed; }
+
 .lesson-list::before {
   display: none;
 }

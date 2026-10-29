@@ -330,6 +330,34 @@ window.MEGA.validateBank = function () {
       }
     }
 
+    if (task.type === "output-reading") {
+      if (typeof task.id !== "string" || !task.id || typeof task.environment !== "string" || !task.environment
+        || typeof task.command !== "string" || !task.command || typeof task.output !== "string" || !task.output || !Array.isArray(task.records)
+        || !Array.isArray(task.answer) || !Array.isArray(task.options) || task.options.length !== 3) {
+        errors.push(`${label}: неполная структура чтения вывода`);
+      } else {
+        const validKinds = new Set(["file", "directory", "current-directory"]);
+        const paths = task.records.map((record) => record && record.path);
+        if (!task.records.length || new Set(paths).size !== paths.length
+          || task.records.some((record) => !record || typeof record.path !== "string" || !record.path.trim() || !validKinds.has(record.kind))) {
+          errors.push(`${label}: неверные или повторные записи вывода`);
+        }
+        const matchingOptions = task.options.filter((option) => option && option.id && Array.isArray(option.records)
+          && JSON.stringify(option.records) === JSON.stringify(task.answer));
+        if (JSON.stringify(task.answer) !== JSON.stringify(task.records) || matchingOptions.length !== 1
+          || task.options.some((option) => !option || !option.id || typeof option.text !== "string" || !Array.isArray(option.records))) {
+          errors.push(`${label}: ответ не покрывает записи вывода`);
+        }
+        if (task.environment.length > 120 || task.command.length > 240 || task.output.length > 2000) errors.push(`${label}: контекст или вывод слишком длинный`);
+        for (const option of task.options) {
+          if (!option || !Array.isArray(option.records)
+            || option.records.some((record) => !record || typeof record.path !== "string" || !validKinds.has(record.kind))) {
+            errors.push(`${label}: вариант содержит невалидную запись`);
+          }
+        }
+      }
+    }
+
     if (task.type === "builder") {
       const available = new Map();
       for (const block of task.blocks || []) available.set(block, (available.get(block) || 0) + 1);
@@ -372,6 +400,39 @@ window.MEGA.validateBank = function () {
       errors.push(`Бонус ${bonus.id}: теория должна содержать от 2 до 4 карточек`);
     }
     bonus.tasks.forEach((task, index) => validateTask(task, `Бонус ${bonus.id}, задание ${index + 1}`));
+  }
+
+  const courseUnit = window.MEGA.data.courseUnits?.find((unit) => unit.id === "terminal-paths-v1");
+  if (!courseUnit || !Array.isArray(window.MEGA.data.curriculumNodes)
+    || new Set(window.MEGA.data.curriculumNodes.map((node) => node.nodeId)).size !== window.MEGA.data.curriculumNodes.length) {
+    errors.push("Курс: отсутствует содержимое или есть повтор ID узлов");
+  } else {
+    const nodesById = new Map(window.MEGA.data.curriculumNodes.map((node) => [node.nodeId, node]));
+    const visiting = new Set();
+    const visited = new Set();
+    function visitNode(nodeId) {
+      if (visiting.has(nodeId)) return false;
+      if (visited.has(nodeId)) return true;
+      visiting.add(nodeId);
+      const node = nodesById.get(nodeId);
+      const valid = node && ["study", "practice", "check"].includes(node.kind)
+        && node.unitId === courseUnit.id && Array.isArray(node.requires)
+        && node.requires.every((required) => nodesById.has(required) && visitNode(required));
+      visiting.delete(nodeId);
+      if (valid) visited.add(nodeId);
+      return Boolean(valid);
+    }
+    for (const node of window.MEGA.data.curriculumNodes) {
+      if (!node.nodeId || !visitNode(node.nodeId)) errors.push(`Карта курса: неверный узел или зависимость ${node.nodeId || ""}`);
+    }
+    const taskIds = new Set();
+    for (const task of [...courseUnit.tasks, ...courseUnit.test]) {
+      if (typeof task.id !== "string" || taskIds.has(task.id)) errors.push(`Курс: пустой или повторный ID задания ${task.id || ""}`);
+      taskIds.add(task.id);
+    }
+    courseUnit.tasks.forEach((task, index) => validateTask(task, `Курс terminal-paths-v1, практика ${index + 1}`));
+    courseUnit.test.forEach((task, index) => validateTask(task, `Курс terminal-paths-v1, тест ${index + 1}`));
+    if (courseUnit.test.length !== 5 || !courseUnit.tasks.some((task) => task.type === "output-reading")) errors.push("Курс: ожидаются 5 контрольных вопросов и чтение вывода");
   }
 
   if (errors.length) {

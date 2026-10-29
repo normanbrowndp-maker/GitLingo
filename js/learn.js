@@ -2,6 +2,7 @@
   const { data, state, ui } = window.MEGA;
   const lessonList = document.querySelector("#lesson-list");
   const bonusList = document.querySelector("#bonus-list");
+  const courseNodeList = document.querySelector("#course-node-list");
   const resetButton = document.querySelector("#reset-progress");
   const continueLink = document.querySelector("#continue-learning");
   const reviewLink = document.querySelector("#review-errors-link");
@@ -105,8 +106,38 @@
     }
   }
 
+  function renderCourseNodes() {
+    if (!courseNodeList) return;
+    const completed = state.getCourseProgress();
+    courseNodeList.replaceChildren();
+    for (const node of data.curriculumNodes || []) {
+      const prerequisitesMet = node.requires.every((required) => completed[required] === true);
+      const heartLocked = node.kind === "check" && state.get().hearts === 0;
+      const status = heartLocked ? "locked" : (completed[node.nodeId] ? "completed" : (prerequisitesMet ? "open" : "locked"));
+      const item = document.createElement("li");
+      const link = document.createElement("a");
+      link.className = "lesson-node";
+      link.href = status === "locked" ? "#course-node-list" : `lesson.html?node=${encodeURIComponent(node.nodeId)}`;
+      link.dataset.status = status;
+      const details = document.createElement("span");
+      details.className = "lesson-node__details";
+      const title = document.createElement("span");
+      title.className = "lesson-node__title";
+      title.textContent = `${node.kind === "study" ? "Изучение" : node.kind === "practice" ? "Практика" : "Контрольный тест"}: ${data.courseUnits[0].title}`;
+      const label = document.createElement("span");
+      label.className = "lesson-node__description";
+      label.textContent = status === "completed" ? "Этап пройден" : status === "locked" ? (heartLocked ? "Для теста нужно хотя бы одно сердце" : "Сначала завершите предыдущий этап") : "Доступно";
+      details.append(title, label);
+      link.append(details);
+      if (status === "locked") link.setAttribute("aria-disabled", "true");
+      item.append(link);
+      courseNodeList.append(item);
+    }
+  }
+
   function renderMap() {
     renderLessons();
+    renderCourseNodes();
     renderBonuses();
     const saved = state.get();
     const firstUnfinished = data.lessons.find((lesson) => !saved.lessons[String(lesson.id)].completed);
@@ -123,6 +154,10 @@
     }
     for (const bonus of data.bonuses) {
       bonus.tasks.forEach((task, index) => availableIds.add(state.questionId("bonus", bonus.id, "practice", index, task)));
+    }
+    for (const course of data.courseUnits || []) {
+      course.tasks.forEach((task, index) => availableIds.add(state.questionId("course", course.id, "practice", index, task)));
+      course.test.forEach((task, index) => availableIds.add(state.questionId("course", course.id, "test", index, task)));
     }
     const actionable = queue.filter((entry) => availableIds.has(entry.id)).length;
     reviewLink.hidden = !storageWritable || queue.length === 0;

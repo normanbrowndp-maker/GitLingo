@@ -37,8 +37,10 @@
     if (!scope) return "Все темы";
     const unit = scope.unitKind === "bonus"
       ? data.bonuses.find((item) => item.id === scope.unitId)
-      : data.lessons.find((item) => String(item.id) === scope.unitId);
-    return unit ? (scope.unitKind === "bonus" ? unit.title : `Урок ${unit.id}: ${unit.title}`) : "Выбранная тема";
+      : scope.unitKind === "course"
+        ? data.courseUnits?.find((item) => item.id === scope.unitId)
+        : data.lessons.find((item) => String(item.id) === scope.unitId);
+    return unit ? (scope.unitKind === "bonus" || scope.unitKind === "course" ? unit.title : `Урок ${unit.id}: ${unit.title}`) : "Выбранная тема";
   }
 
   function resolveQueue() {
@@ -48,14 +50,21 @@
       if (!entry.needsReview) continue;
       const unit = entry.unitKind === "bonus"
         ? data.bonuses.find((item) => item.id === entry.unitId)
-        : data.lessons.find((item) => String(item.id) === entry.unitId);
-      const tasks = !unit ? [] : entry.phase === "test" && entry.unitKind === "lesson"
+        : entry.unitKind === "course"
+          ? data.courseUnits?.find((item) => item.id === entry.unitId)
+          : data.lessons.find((item) => String(item.id) === entry.unitId);
+      const tasks = !unit ? [] : entry.phase === "test" && ["lesson", "course"].includes(entry.unitKind)
         ? unit.test.slice(0, data.config.TEST_LENGTH)
         : unit.tasks;
-      const task = tasks[entry.taskIndex];
-      const id = task && state.questionId(entry.unitKind, entry.unitId, entry.phase, entry.taskIndex, task);
+      let taskIndex = entry.taskIndex;
+      let task = tasks[taskIndex];
+      if (entry.unitKind === "course" && unit) {
+        taskIndex = tasks.findIndex((candidate, index) => state.questionId("course", entry.unitId, entry.phase, index, candidate) === entry.id);
+        task = taskIndex >= 0 ? tasks[taskIndex] : null;
+      }
+      const id = task && state.questionId(entry.unitKind, entry.unitId, entry.phase, taskIndex, task);
       const item = { id: entry.id, unitKind: entry.unitKind, unitId: entry.unitId, phase: entry.phase,
-        taskIndex: entry.taskIndex, type: entry.type, reviewVersion: entry.reviewVersion, unit, task };
+        taskIndex, type: entry.type, reviewVersion: entry.reviewVersion, unit, task };
       if (!task || id !== entry.id || task.type !== entry.type) stale.push(item);
       else valid.push(item);
     }
@@ -197,6 +206,7 @@
       return option.code ? `${option.text} (${option.code})` : option.text;
     }
     if (task.type === "hotkeys") return task.options.find((item) => item.id === task.answer).keys.join(" + ");
+    if (task.type === "output-reading") return task.options.find((item) => window.MEGA.taskChecks.outputReading(task, item.id))?.text || "разбор вывода";
     if (task.type === "builder") return task.answer.join(" ");
     return task.pairs.map((pair) => `${pair.term} — ${pair.def}`).join("; ");
   }
@@ -346,6 +356,13 @@
       const options = el("section", "", item.type === "hotkeys" ? "review-option-grid review-option-grid--hotkeys" : "review-option-grid");
       for (const [position, option] of ui.shuffle(item.task.options).entries()) options.append(renderOption(item.task, option, position, item.type === "hotkeys"));
       taskBody.append(options);
+    } else if (item.type === "output-reading") {
+      const environment = el("p", `Среда: ${item.task.environment}`);
+      const command = el("code", item.task.command);
+      const output = el("pre", item.task.output, "review-output");
+      const options = el("section", "", "review-option-grid");
+      for (const [position, option] of ui.shuffle(item.task.options).entries()) options.append(renderOption(item.task, option, position, false));
+      taskBody.append(environment, command, output, el("p", "Выберите верное описание вывода."), options);
     } else if (item.type === "builder") renderBuilder(item.task);
     else if (item.type === "matching") renderMatching(item.task);
     $("#review-question-title").focus({ preventScroll: true });
@@ -439,9 +456,11 @@
     if (!item || locked || checkButton.disabled || !feedback.hidden) return;
     let answer;
     let correct = false;
-    if (item.type === "choice" || item.type === "hotkeys") {
+    if (item.type === "choice" || item.type === "hotkeys" || item.type === "output-reading") {
       answer = { kind: "option", selected: selectedAnswer || "" };
-      correct = window.MEGA.taskChecks.option(item.task, selectedAnswer);
+      correct = item.type === "output-reading"
+        ? window.MEGA.taskChecks.outputReading(item.task, selectedAnswer)
+        : window.MEGA.taskChecks.option(item.task, selectedAnswer);
     } else if (item.type === "builder") {
       const blocks = selectedBlocks.map((blockIndex) => item.task.blocks[blockIndex]);
       answer = { kind: "builder", blocks };

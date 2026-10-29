@@ -21,6 +21,7 @@
   <link rel="stylesheet" href="css/pages.css">
   <script src="js/storage.js" defer></script>
   <script src="js/data/lessons.js" defer></script>
+  <script src="js/data/course.js" defer></script>
   <script src="js/ui.js" defer></script>
   <script src="js/theme.js" defer></script>
   <script src="assets/vendor/supabase-js-2.118.0.js" defer></script>
@@ -72,6 +73,15 @@
         <a class="btn btn--secondary" href="lesson.html?id=1&amp;mode=restart" id="restart-hearts-link" hidden>Перезапустить урок и восстановить сердца</a>
         <button type="button" class="btn btn--secondary" id="change-level">Изменить уровень</button>
       </div>
+      <section class="course-entry" aria-labelledby="course-entry-title">
+        <h2 id="course-entry-title">Новый курс</h2>
+        <p>Терминал и файловые пути. Примеры используют Git Bash для Windows; команды здесь не запускаются.</p>
+        <ul class="lesson-list course-node-list" id="course-node-list">
+          <li><a class="lesson-node" href="lesson.html?node=course-terminal-study">Терминал и файловые пути · Теория</a></li>
+          <li><a class="lesson-node" href="lesson.html?node=course-terminal-practice">Практика</a></li>
+          <li><a class="lesson-node" href="lesson.html?node=course-terminal-check">Контрольный тест</a></li>
+        </ul>
+      </section>
       <ul class="lesson-list" id="lesson-list">
         <li><a class="lesson-node" href="lesson.html?id=1" data-status="open">Урок 1: Основы терминала</a></li>
         <li><a class="lesson-node" href="lesson.html?id=2" data-status="locked">Урок 2: Первый коммит</a></li>

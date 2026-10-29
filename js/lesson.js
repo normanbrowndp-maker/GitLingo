@@ -2,6 +2,7 @@
   const { data, state, ui } = window.MEGA;
   const search = new URLSearchParams(window.location.search);
   const requestedId = search.get("id");
+  const requestedNodeId = search.get("node");
   const requestedMode = search.get("mode");
   if (requestedMode === "review") {
     window.location.replace("review.html");
@@ -10,10 +11,15 @@
   const requestedTheory = requestedMode === "theory";
   const requestedPractice = requestedMode === "practice";
   const requestedRestart = requestedMode === "restart";
-  const unit = data.lessons.find((lesson) => String(lesson.id) === requestedId)
+  const courseNode = (data.curriculumNodes || []).find((node) => node.nodeId === requestedNodeId);
+  const isCourse = Boolean(courseNode);
+  const courseUnit = isCourse ? data.courseUnits.find((entry) => entry.id === courseNode.unitId) : null;
+  const unit = courseUnit || data.lessons.find((lesson) => String(lesson.id) === requestedId)
     || data.bonuses.find((bonus) => bonus.id === requestedId);
+  const courseProgress = state?.getCourseProgress?.() || {};
+  const courseNodeOpen = isCourse && courseNode.requires.every((required) => courseProgress[required] === true);
 
-  if (!ui || !state || !unit || (data.lessons.includes(unit) && !state.isLessonUnlocked(unit.id))) {
+  if (!ui || !state || !unit || (isCourse && (!courseNodeOpen || courseNode.kind === "check" && state.get().hearts === 0)) || (!isCourse && data.lessons.includes(unit) && !state.isLessonUnlocked(unit.id))) {
     const required = Number(requestedId) > 1 ? Number(requestedId) - 1 : 1;
     window.location.replace(`learn.html?notice=locked&required=${required}`);
     return;
@@ -38,7 +44,7 @@
   }
 
   const isBonus = data.bonuses.includes(unit);
-  let isTest = !isBonus && requestedMode === "test";
+  let isTest = isCourse ? courseNode.kind === "check" : (!isBonus && requestedMode === "test");
   let isFreePractice = requestedPractice;
   const lessonId = unit.id;
   const profileLevel = state.get().profile.level;
@@ -50,7 +56,7 @@
   const freePracticeButton = document.querySelector("#free-practice-btn");
   const restartHeartsButton = document.querySelector("#restart-hearts-btn");
   const lessonSteps = [...document.querySelectorAll("#lesson-steps [data-step]")];
-  const lessonName = isBonus ? unit.title : `Урок ${unit.id}`;
+  const lessonName = isCourse ? unit.title : (isBonus ? unit.title : `Урок ${unit.id}`);
   document.documentElement.style.setProperty("--lesson-accent", unit.accent || "var(--text-muted)");
   const taskTitle = document.querySelector("#task-title");
   const taskArea = document.querySelector("#task-area");
@@ -136,11 +142,11 @@
       item.textContent = goal;
       return item;
     }));
-    document.querySelector("#skip-theory-btn").hidden = profileLevel !== "Немного";
-    openTheoryButton.hidden = profileLevel !== "Уверенно";
-    freePracticeButton.hidden = lives > 0;
+    document.querySelector("#skip-theory-btn").hidden = isCourse || profileLevel !== "Немного";
+    openTheoryButton.hidden = isCourse || profileLevel !== "Уверенно";
+    freePracticeButton.hidden = isCourse || lives > 0;
     const openMistakes = state.get().mistakes.filter((entry) => entry.needsReview).length;
-    restartHeartsButton.hidden = lives > 0 || openMistakes > 0;
+    restartHeartsButton.hidden = isCourse || lives > 0 || openMistakes > 0;
   }
 
   function renderTheoryCard() {
@@ -200,8 +206,9 @@
 
   function startTasks(options = {}) {
     isTest = false;
-    history.replaceState(null, "", `lesson.html?id=${lessonId}`);
-    isFreePractice = options.free === true || requestedPractice || lives === 0;
+    history.replaceState(null, "", isCourse ? `lesson.html?node=${courseNode.nodeId}` : `lesson.html?id=${lessonId}`);
+    isFreePractice = options.free === true || requestedPractice || lives === 0
+      || (isCourse && state.getCourseProgress()["course-terminal-practice"] === true);
     const taskCount = unit.tasks.length;
     const lastTwo = taskCount % 100;
     const lastOne = taskCount % 10;
@@ -355,7 +362,7 @@
     clearBuilderAnimations();
     builderStatus.textContent = "";
     currentTask = task;
-    currentSection = templates.find((section) => section.dataset.taskTemplate === task.type);
+    currentSection = templates.find((section) => section.dataset.taskTemplate === (task.type === "output-reading" ? "choice" : task.type));
     selectedAnswer = null;
     selectedBlocks = [];
     matchedPairs = new Set();
@@ -364,11 +371,29 @@
     lastMistakeSave = null;
     wrongForCurrent = false;
     taskArea.dataset.taskType = task.type;
-    taskArea.querySelector("p").textContent = task.question;
+    if (task.scenarioStep) taskGuidance.textContent = `Самостоятельная практика · шаг ${task.scenarioStep} из 3. Это учебная модель Git Bash: команды на компьютере не запускаются.`;
+    else if (isCourse && !isTest) taskGuidance.textContent = `Тренировка · ${unit.title}. Ситуация и вывод заданы в карточке.`;
+    let context = taskArea.querySelector("[data-task-context]");
+    if (context) context.remove();
+    taskArea.querySelector(":scope > p").textContent = task.question;
+    if (task.type === "output-reading") {
+      context = document.createElement("div");
+      context.dataset.taskContext = "";
+      const environment = document.createElement("p");
+      environment.textContent = `Среда: ${task.environment}`;
+      const command = document.createElement("code");
+      command.textContent = task.command;
+      const output = document.createElement("pre");
+      output.textContent = task.output;
+      const question = document.createElement("p");
+      question.textContent = "Выберите верное описание вывода.";
+      context.append(environment, command, output, question);
+      taskArea.insertBefore(context, taskArea.querySelector(":scope > p"));
+    }
 
     for (const template of templates) template.hidden = template !== currentSection;
 
-    if (task.type === "choice") renderChoice(task, currentSection);
+    if (task.type === "choice" || task.type === "output-reading") renderChoice(task, currentSection);
     if (task.type === "hotkeys") renderHotkeys(task, currentSection);
     if (task.type === "builder") renderBuilder(task, currentSection);
     if (task.type === "matching") renderMatching(task, currentSection);
@@ -382,6 +407,7 @@
   function renderNext() {
     if (queue.length === 0) {
       if (isTest) finishTest();
+      else if (isCourse) finishPractice();
       else if (isFreePractice) finishPractice();
       else if (isBonus) finishBonus();
       else beginTest();
@@ -391,6 +417,7 @@
   }
 
   function answerText() {
+    if (currentTask.type === "output-reading") return currentTask.options.find((option) => window.MEGA.taskChecks.outputReading(currentTask, option.id))?.text || "разбор вывода";
     if (currentTask.type === "choice") {
       const answer = currentTask.options.find((option) => option.id === currentTask.answer);
       return answer.code ? `${answer.text} (${answer.code})` : answer.text;
@@ -404,11 +431,14 @@
   }
 
   function markAnswerStates(correct) {
-    if (currentTask.type === "choice" || currentTask.type === "hotkeys") {
+    if (currentTask.type === "choice" || currentTask.type === "hotkeys" || currentTask.type === "output-reading") {
       for (const button of currentSection.querySelectorAll("button[data-answer]")) {
         button.classList.add("is-disabled");
         button.disabled = true;
-        if (button.dataset.answer === currentTask.answer) {
+        const isCorrectOption = currentTask.type === "output-reading"
+          ? window.MEGA.taskChecks.outputReading(currentTask, button.dataset.answer)
+          : button.dataset.answer === currentTask.answer;
+        if (isCorrectOption) {
           button.classList.add("is-correct");
         } else if (!correct && button.dataset.answer === selectedAnswer) {
           button.classList.add("is-wrong");
@@ -496,7 +526,7 @@
 
   function currentTaskInfo() {
     const phase = isTest ? "test" : "practice";
-    const unitKind = isBonus ? "bonus" : "lesson";
+    const unitKind = isCourse ? "course" : (isBonus ? "bonus" : "lesson");
     const tasks = isBonus ? unit.tasks : (phase === "test" ? unit.test.slice(0, data.config.TEST_LENGTH) : unit.tasks);
     const taskIndex = tasks.indexOf(currentTask);
     return {
@@ -511,7 +541,7 @@
 
   function currentUserAnswer(override = null) {
     if (override) return override;
-    if (currentTask.type === "choice" || currentTask.type === "hotkeys") return { kind: "option", selected: selectedAnswer || "" };
+    if (currentTask.type === "choice" || currentTask.type === "hotkeys" || currentTask.type === "output-reading") return { kind: "option", selected: selectedAnswer || "" };
     if (currentTask.type === "builder") return { kind: "builder", blocks: selectedBlocks.slice() };
     return { kind: "matching", pairs: [] };
   }
@@ -567,8 +597,10 @@
     recordWrong();
 
     if (!isTest) {
-      queue.shift();
-      queue.push(currentTask);
+      if (!(isCourse && currentTask.scenarioStep)) {
+        queue.shift();
+        queue.push(currentTask);
+      }
     } else {
       queue.shift();
       resultTest.wrong += 1;
@@ -701,8 +733,10 @@
   function checkAnswer() {
     if (!currentTask || checkButton.disabled || feedback.classList.contains("is-visible")) return;
     let correct = false;
-    if (currentTask.type === "choice" || currentTask.type === "hotkeys") {
-      correct = window.MEGA.taskChecks.option(currentTask, selectedAnswer);
+    if (currentTask.type === "choice" || currentTask.type === "hotkeys" || currentTask.type === "output-reading") {
+      correct = currentTask.type === "output-reading"
+        ? window.MEGA.taskChecks.outputReading(currentTask, selectedAnswer)
+        : window.MEGA.taskChecks.option(currentTask, selectedAnswer);
     } else if (currentTask.type === "builder") {
       correct = window.MEGA.taskChecks.builder(currentTask, selectedBlocks);
     }
@@ -827,6 +861,20 @@
     const accuracy = combinedTotal ? Math.round((combinedCorrect / combinedTotal) * 100) : Math.round(testAccuracy * 100);
     let totalXp = resultTest.passed ? data.config.XP_TEST_PASS + resultLesson.xp : 0;
 
+    if (isCourse) {
+      const completion = resultTest.passed
+        ? state.completeCourseNode(courseNode.nodeId, data.config.XP_TEST_PASS)
+        : { ok: true, firstCompletion: false, xpAwarded: 0 };
+      if (!completion.ok) totalXp = 0;
+      else totalXp = completion.xpAwarded;
+      saveResult({ kind: "course", courseNodeId: courseNode.nodeId, coursePhase: "check", lessonId,
+        lesson: { correct: 0, total: 0, errors: 0, xp: 0 }, test: resultTest,
+        totalTimeSec: Math.max(0, Math.floor((Date.now() - startedAt) / 1000)), totalXp,
+        passed: resultTest.passed && completion.ok, interrupted, accuracy: Math.round(testAccuracy * 100),
+        saveFailed: !completion.ok });
+      return;
+    }
+
     if (resultTest.passed) {
       state.completeLesson(lessonId, Math.round(lessonAccuracy * 100));
       state.addXp(totalXp);
@@ -848,6 +896,24 @@
   }
 
   function finishPractice() {
+    if (isCourse) {
+      const nodeId = courseNode.kind === "practice" ? courseNode.nodeId : "course-terminal-practice";
+      if (!isFreePractice && noErrors) earnedXp += data.config.XP_PERFECT_BONUS;
+      const alreadyComplete = state.getCourseProgress()[nodeId] === true;
+      const completion = isFreePractice
+        ? { ok: true, completed: alreadyComplete, firstCompletion: false, xpAwarded: 0 }
+        : state.completeCourseNode(nodeId, earnedXp);
+      if (!completion.ok) {
+        ui.toast("Не удалось сохранить этап курса. Проверьте хранилище и повторите попытку.");
+        return;
+      }
+      saveResult({ kind: "course", courseNodeId: nodeId, coursePhase: "practice", lessonId,
+        lesson: { correct: correctTasks, total: unit.tasks.length, errors: wrongAnswers, xp: completion.xpAwarded },
+        test: null, totalTimeSec: Math.max(0, Math.floor((Date.now() - startedAt) / 1000)),
+        totalXp: completion.xpAwarded, passed: Boolean(completion.completed || completion.firstCompletion), accuracy: unit.tasks.length ? Math.round((correctTasks / unit.tasks.length) * 100) : 0,
+        practiceRecorded: Boolean(completion.completed || completion.firstCompletion), saveFailed: false });
+      return;
+    }
     saveResult({
       kind: "practice",
       lessonId,
@@ -863,6 +929,13 @@
   function finishInterruptedAttempt() {
     if (isTest) {
       finishTest(true);
+      return;
+    }
+    if (isCourse) {
+      saveResult({ kind: "course", courseNodeId: courseNode.nodeId, coursePhase: "practice", lessonId,
+        lesson: { correct: correctTasks, total: unit.tasks.length, errors: wrongAnswers, xp: 0 }, test: null,
+        interrupted: true, totalTimeSec: Math.max(0, Math.floor((Date.now() - startedAt) / 1000)),
+        totalXp: 0, passed: false, accuracy: unit.tasks.length ? Math.round((correctTasks / unit.tasks.length) * 100) : 0 });
       return;
     }
     saveResult({
@@ -920,6 +993,10 @@
   }
 
   document.querySelector("#start-lesson-btn").addEventListener("click", () => {
+    if (isCourse) {
+      if (courseNode.kind === "study") showTheory();
+      return;
+    }
     if (requestedRestart) {
       startTasks();
       return;
@@ -952,6 +1029,15 @@
   });
   document.querySelector("#theory-next").addEventListener("click", () => {
     if (theoryIndex === unit.theory.length - 1) {
+      if (isCourse && courseNode.kind === "study") {
+        const saved = state.completeCourseNode(courseNode.nodeId);
+        if (!saved.ok) {
+          ui.toast("Не удалось сохранить этап. Проверьте хранилище и повторите попытку.");
+          return;
+        }
+        window.location.href = "learn.html";
+        return;
+      }
       if (theoryReturnsToIntro) {
         theoryReturnsToIntro = false;
         setScreen("intro");
@@ -1032,7 +1118,7 @@
       }
     }
 
-    if (currentTask && (currentTask.type === "choice" || currentTask.type === "hotkeys") && /^[1-4]$/.test(event.key)
+    if (currentTask && (currentTask.type === "choice" || currentTask.type === "hotkeys" || currentTask.type === "output-reading") && /^[1-4]$/.test(event.key)
       && !event.target.closest("input, textarea, select, [contenteditable='true']")) {
       const options = [...currentSection.querySelectorAll("button[data-answer]")];
       event.preventDefault();
@@ -1044,6 +1130,9 @@
     const tests = unit.test.slice(0, data.config.TEST_LENGTH);
     resultLesson = { correct: 0, firstTryCorrect: 0, total: 0, xp: 0, errors: 0 };
     resetSession(tests, true);
+  } else if (isCourse && courseNode.kind === "practice") {
+    renderIntroduction();
+    startTasks();
   } else if (requestedPractice) {
     renderIntroduction();
     startTasks({ free: true });

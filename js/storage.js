@@ -6,6 +6,8 @@ window.MEGA = window.MEGA || {};
   const exportVersion = 1;
   const lessonIds = [1, 2, 3, 4, 5];
   const bonusIds = ["b1", "b2"];
+  const courseUnitId = "terminal-paths-v1";
+  const courseNodeIds = ["course-terminal-study", "course-terminal-practice", "course-terminal-check"];
   const profileLevels = ["Ничего", "Немного", "Уверенно"];
 
   function createDefaultState() {
@@ -88,20 +90,21 @@ window.MEGA = window.MEGA || {};
       result.mistakes = value.mistakes.map((entry) => {
         if (!entry || typeof entry !== "object" || Array.isArray(entry)
           || typeof entry.id !== "string" || entry.id.length < 1 || entry.id.length > 160
-          || !["lesson", "bonus"].includes(entry.unitKind)
+          || !["lesson", "bonus", "course"].includes(entry.unitKind)
           || typeof entry.unitId !== "string" || entry.unitId.length < 1 || entry.unitId.length > 24
           || !["practice", "test"].includes(entry.phase)
           || (entry.unitKind === "lesson" && !lessonIds.map(String).includes(entry.unitId))
           || (entry.unitKind === "bonus" && (!bonusIds.includes(entry.unitId) || entry.phase !== "practice"))
+          || (entry.unitKind === "course" && entry.unitId !== courseUnitId)
           || !Number.isInteger(entry.taskIndex) || entry.taskIndex < 0 || entry.taskIndex > 200
-          || !["choice", "builder", "hotkeys", "matching"].includes(entry.type)
+          || !["choice", "builder", "hotkeys", "matching", "output-reading"].includes(entry.type)
           || !Number.isInteger(entry.wrongCount) || entry.wrongCount < 1
           || typeof entry.needsReview !== "boolean"
           || !Number.isInteger(entry.reviewVersion) || entry.reviewVersion < 1) return null;
 
         const answer = entry.answer;
         if (!answer || typeof answer !== "object" || Array.isArray(answer)) return null;
-        if (["choice", "hotkeys"].includes(entry.type)) {
+        if (["choice", "hotkeys", "output-reading"].includes(entry.type)) {
           if (answer.kind !== "option" || typeof answer.selected !== "string" || answer.selected.length > 80) return null;
         } else if (entry.type === "builder") {
           if (answer.kind !== "builder" || !Array.isArray(answer.blocks) || answer.blocks.length > 40
@@ -196,6 +199,17 @@ window.MEGA = window.MEGA || {};
       if (!saved || typeof saved !== "object" || Array.isArray(saved)
         || typeof saved.completed !== "boolean") return { error: "invalid-structure" };
       result.bonuses[id] = { ...saved };
+    }
+
+    if (Object.prototype.hasOwnProperty.call(value, "courseProgress")) {
+      if (!value.courseProgress || typeof value.courseProgress !== "object" || Array.isArray(value.courseProgress)) return { error: "invalid-structure" };
+      result.courseProgress = { ...value.courseProgress };
+      for (const nodeId of courseNodeIds) {
+        if (Object.prototype.hasOwnProperty.call(result.courseProgress, nodeId)
+          && typeof result.courseProgress[nodeId] !== "boolean") return { error: "invalid-structure" };
+        if (!Object.prototype.hasOwnProperty.call(result.courseProgress, nodeId)) result.courseProgress[nodeId] = false;
+      }
+      if (Object.keys(result.courseProgress).some((nodeId) => !courseNodeIds.includes(nodeId))) return { error: "invalid-structure" };
     }
 
     return { state: result, changed };
@@ -395,23 +409,35 @@ window.MEGA = window.MEGA || {};
   }
 
   function questionId(unitKind, unitId, phase, taskIndex, task) {
-    if (!["lesson", "bonus"].includes(unitKind) || typeof unitId !== "string"
+    if (!["lesson", "bonus", "course"].includes(unitKind) || typeof unitId !== "string"
       || !["practice", "test"].includes(phase) || !Number.isInteger(taskIndex) || taskIndex < 0
       || !task || typeof task.type !== "string" || typeof task.question !== "string") return "";
-    const options = Array.isArray(task.options) ? task.options.map((option) => ({
-      id: option.id,
-      text: option.text || "",
-      code: option.code || "",
-      keys: Array.isArray(option.keys) ? option.keys : []
-    })) : [];
-    const shape = JSON.stringify({
+    if (unitKind === "course" && (unitId !== courseUnitId || typeof task.id !== "string")) return "";
+    const options = Array.isArray(task.options) ? task.options.map((option) => {
+      const optionShape = {
+        id: option.id,
+        text: option.text || "",
+        code: option.code || "",
+        keys: Array.isArray(option.keys) ? option.keys : []
+      };
+      if (unitKind === "course") optionShape.records = Array.isArray(option.records) ? option.records : [];
+      return optionShape;
+    }) : [];
+    const taskShape = {
       type: task.type,
       question: task.question,
       answer: task.answer,
       options,
       blocks: Array.isArray(task.blocks) ? task.blocks : [],
       pairs: Array.isArray(task.pairs) ? task.pairs.map((pair) => [pair.term, pair.def]) : []
+    };
+    if (unitKind === "course") Object.assign(taskShape, {
+      environment: task.environment || "",
+      command: task.command || "",
+      output: task.output || "",
+      records: Array.isArray(task.records) ? task.records : []
     });
+    const shape = JSON.stringify(taskShape);
     let first = 2166136261;
     let second = 0x9e3779b9;
     for (let index = 0; index < shape.length; index += 1) {
@@ -420,12 +446,14 @@ window.MEGA = window.MEGA || {};
       second = Math.imul(second ^ code, 2246822519);
     }
     const fingerprint = `${(first >>> 0).toString(16).padStart(8, "0")}${(second >>> 0).toString(16).padStart(8, "0")}`;
-    return `${unitKind}:${unitId}:${phase}:${taskIndex}:${fingerprint}`;
+    return unitKind === "course"
+      ? `${unitKind}:${unitId}:${phase}:${task.id}:${fingerprint}`
+      : `${unitKind}:${unitId}:${phase}:${taskIndex}:${fingerprint}`;
   }
 
   function normalizeMistakeAnswer(type, answer) {
     if (!answer || typeof answer !== "object" || Array.isArray(answer)) return null;
-    if (["choice", "hotkeys"].includes(type) && answer.kind === "option"
+    if (["choice", "hotkeys", "output-reading"].includes(type) && answer.kind === "option"
       && typeof answer.selected === "string" && answer.selected.length <= 80) {
       return { kind: "option", selected: answer.selected };
     }
@@ -473,11 +501,12 @@ window.MEGA = window.MEGA || {};
 
   function recordQuestionError(info, answer, loseHeart = false, expectedReviewVersion = null) {
     if (!info || typeof info.id !== "string" || !info.id || info.id.length > 160
-      || !["lesson", "bonus"].includes(info.unitKind) || typeof info.unitId !== "string"
+      || !["lesson", "bonus", "course"].includes(info.unitKind) || typeof info.unitId !== "string"
       || !["practice", "test"].includes(info.phase) || !Number.isInteger(info.taskIndex) || info.taskIndex < 0
       || (info.unitKind === "lesson" && !lessonIds.map(String).includes(info.unitId))
       || (info.unitKind === "bonus" && (!bonusIds.includes(info.unitId) || info.phase !== "practice"))
-      || !["choice", "builder", "hotkeys", "matching"].includes(info.type)) return { ok: false, reason: "invalid-record" };
+      || (info.unitKind === "course" && info.unitId !== courseUnitId)
+      || !["choice", "builder", "hotkeys", "matching", "output-reading"].includes(info.type)) return { ok: false, reason: "invalid-record" };
     const safeAnswer = normalizeMistakeAnswer(info.type, answer);
     if (!safeAnswer) return { ok: false, reason: "invalid-answer" };
     if (!refreshStateBeforeReviewWrite()) return { ok: false, saved: false, stale: false, reason: "state-unavailable", hearts: state.hearts };
@@ -619,6 +648,23 @@ window.MEGA = window.MEGA || {};
       if (number === 1) return true;
       const previous = state.lessons[String(number - 1)];
       return Boolean(previous && previous.completed && previous.testPassed);
+    },
+    getCourseProgress() {
+      return clone(state.courseProgress || {});
+    },
+    completeCourseNode(nodeId, xpAward = 0) {
+      if (!courseNodeIds.includes(nodeId) || !status.writable || !refreshStateBeforeReviewWrite()) return { ok: false, completed: false, firstCompletion: false };
+      const next = clone(state);
+      next.courseProgress = { ...(next.courseProgress || {}) };
+      const wasComplete = next.courseProgress[nodeId] === true;
+      next.courseProgress[nodeId] = true;
+      const firstCompletion = !wasComplete;
+      const award = firstCompletion && Number.isFinite(xpAward) ? Math.max(0, Math.floor(xpAward)) : 0;
+      next.xp += award;
+      const result = persist(next);
+      return result.ok
+        ? { ok: true, completed: true, firstCompletion, xpAwarded: award }
+        : { ok: false, completed: false, firstCompletion: false, error: result.error };
     },
     completeLesson(id, accuracy) {
       const number = Number(id);

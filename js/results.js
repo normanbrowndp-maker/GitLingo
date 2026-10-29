@@ -30,7 +30,8 @@
   const saved = state.get();
   const storageWritable = state.getStorageStatus().writable;
   const unit = data.lessons.find((lesson) => String(lesson.id) === String(result.lessonId))
-    || data.bonuses.find((bonus) => bonus.id === String(result.lessonId));
+    || data.bonuses.find((bonus) => bonus.id === String(result.lessonId))
+    || data.courseUnits?.find((course) => course.id === String(result.lessonId));
   const test = result.test;
   const isBonus = result.kind === "bonus";
   const interrupted = Boolean(result.interrupted || (test && test.interrupted));
@@ -82,9 +83,41 @@
   for (const bonus of data.bonuses) {
     bonus.tasks.forEach((task, index) => availableIds.add(state.questionId("bonus", bonus.id, "practice", index, task)));
   }
+  for (const course of data.courseUnits || []) {
+    course.tasks.forEach((task, index) => availableIds.add(state.questionId("course", course.id, "practice", index, task)));
+    course.test.forEach((task, index) => availableIds.add(state.questionId("course", course.id, "test", index, task)));
+  }
   const availableMistakes = activeMistakes.filter((entry) => availableIds.has(entry.id)).length;
   reviewLink.hidden = !storageWritable || activeMistakes.length === 0;
   reviewLink.textContent = `Работа над ошибками (${availableMistakes})`;
+
+  if (result.kind === "course") {
+    const checking = result.coursePhase === "check";
+    hint.hidden = !result.saveFailed;
+    if (result.saveFailed) hint.textContent = "Этап не сохранён. Проверьте доступность локального хранилища и повторите действие.";
+    nextBonusLink.hidden = true;
+    nextLink.hidden = false;
+    nextLink.href = "learn.html";
+    nextLink.textContent = "К карте обучения";
+    retryLink.hidden = true;
+    repeatPracticeLink.hidden = checking;
+    repeatPracticeLink.href = "lesson.html?node=course-terminal-practice";
+    retakeLink.hidden = !checking || saved.hearts === 0;
+    retakeLink.href = "lesson.html?node=course-terminal-check";
+    restartHeartsLink.hidden = true;
+    noHeartsMessage.hidden = !(checking && saved.hearts === 0 && !passed);
+    if (checking) {
+      nextDescription.textContent = result.saveFailed
+        ? "Результат теста не записан в прогресс."
+        : (passed ? "Контрольный этап пройден. Старые достижения и результаты других уроков не изменяются." : "Контрольный этап не пройден. Можно повторить практику или вернуться к карте.");
+    } else {
+      nextDescription.textContent = result.practiceRecorded
+        ? "Учебная задача выполнена: команды не запускались на компьютере. Этап практики сохранён отдельно от старых уроков."
+        : "Свободная повторная практика завершена. Она не засчитывает этап курса и не выдаёт XP.";
+    }
+    completedMessage.hidden = true;
+    return;
+  }
 
   if (interrupted || (test && !passed)) {
     hint.hidden = false;

@@ -263,6 +263,30 @@
   color: var(--text-muted);
 }
 
+#task-area [data-task-context] {
+  display: grid;
+  gap: 0.65rem;
+  margin-block: 0.75rem 1rem;
+}
+
+#task-area [data-task-context] p { margin: 0; }
+#task-area [data-task-context] code,
+#task-area [data-task-context] pre,
+.review-output {
+  max-width: 100%;
+  overflow-x: auto;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-mono, ui-monospace, monospace);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+#task-area [data-task-context] code { width: fit-content; }
+
 [data-task-template] {
   padding: 1.25rem;
   border: 2px solid var(--border);
