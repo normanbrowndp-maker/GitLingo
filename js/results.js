@@ -1,5 +1,5 @@
 (() => {
-  const { data, state, ui } = window.MEGA;
+  const { data, state, ui } = window.GitLingo;
   let result;
   try {
     const stored = sessionStorage.getItem("mega-last-result");

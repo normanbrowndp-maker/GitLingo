@@ -1,5 +1,5 @@
 (() => {
-  const { data, state, ui } = window.MEGA;
+  const { data, state, ui } = window.GitLingo;
   const search = new URLSearchParams(window.location.search);
   const requestedId = search.get("id");
   const requestedNodeId = search.get("node");
@@ -25,7 +25,7 @@
     return;
   }
 
-  if (!window.MEGA.validateBank()) {
+  if (!window.GitLingo.validateBank()) {
     document.querySelector("#task-title").textContent = "Не удалось загрузить задания";
     return;
   }
@@ -417,7 +417,7 @@
   }
 
   function answerText() {
-    if (currentTask.type === "output-reading") return currentTask.options.find((option) => window.MEGA.taskChecks.outputReading(currentTask, option.id))?.text || "разбор вывода";
+    if (currentTask.type === "output-reading") return currentTask.options.find((option) => window.GitLingo.taskChecks.outputReading(currentTask, option.id))?.text || "разбор вывода";
     if (currentTask.type === "choice") {
       const answer = currentTask.options.find((option) => option.id === currentTask.answer);
       return answer.code ? `${answer.text} (${answer.code})` : answer.text;
@@ -436,7 +436,7 @@
         button.classList.add("is-disabled");
         button.disabled = true;
         const isCorrectOption = currentTask.type === "output-reading"
-          ? window.MEGA.taskChecks.outputReading(currentTask, button.dataset.answer)
+          ? window.GitLingo.taskChecks.outputReading(currentTask, button.dataset.answer)
           : button.dataset.answer === currentTask.answer;
         if (isCorrectOption) {
           button.classList.add("is-correct");
@@ -622,7 +622,7 @@
 
     if (selectedTerm === null) return;
     const termButton = currentSection.querySelector(`[data-match-side="term"][data-pair-index="${selectedTerm}"]`);
-    if (window.MEGA.taskChecks.matchingPair(Number(selectedTerm), Number(index))) {
+    if (window.GitLingo.taskChecks.matchingPair(Number(selectedTerm), Number(index))) {
       matchedPairs.add(index);
       termButton.classList.remove("is-selected");
       termButton.classList.add("is-matched", "is-disabled");
@@ -735,10 +735,10 @@
     let correct = false;
     if (currentTask.type === "choice" || currentTask.type === "hotkeys" || currentTask.type === "output-reading") {
       correct = currentTask.type === "output-reading"
-        ? window.MEGA.taskChecks.outputReading(currentTask, selectedAnswer)
-        : window.MEGA.taskChecks.option(currentTask, selectedAnswer);
+        ? window.GitLingo.taskChecks.outputReading(currentTask, selectedAnswer)
+        : window.GitLingo.taskChecks.option(currentTask, selectedAnswer);
     } else if (currentTask.type === "builder") {
-      correct = window.MEGA.taskChecks.builder(currentTask, selectedBlocks);
+      correct = window.GitLingo.taskChecks.builder(currentTask, selectedBlocks);
     }
     if (correct) handleCorrect();
     else handleIncorrect();

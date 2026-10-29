@@ -29,6 +29,6 @@ if (taskTitle) {
     accountLink.removeAttribute("aria-busy");
   }
 
-  renderAccountLink(window.MEGA && window.MEGA.auth && window.MEGA.auth.getState());
+  renderAccountLink(window.GitLingo && window.GitLingo.auth && window.GitLingo.auth.getState());
   window.addEventListener("mega-auth-state", (event) => renderAccountLink(event.detail));
 })();

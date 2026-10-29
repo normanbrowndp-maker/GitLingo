@@ -1,7 +1,7 @@
-window.MEGA = window.MEGA || {};
+window.GitLingo = window.GitLingo || {};
 
 (() => {
-  const auth = window.MEGA.auth;
+  const auth = window.GitLingo.auth;
   const initializingView = document.querySelector("[data-auth-initializing]");
   const unavailableView = document.querySelector("[data-auth-unavailable]");
   const guestView = document.querySelector("[data-auth-guest]");
@@ -198,7 +198,7 @@ window.MEGA = window.MEGA || {};
     if (!row || row.user_id !== userId || !validRevision(row.revision)
       || !Number.isInteger(row.schema_version) || typeof row.updated_at !== "string"
       || !Number.isFinite(Date.parse(row.updated_at))) return null;
-    const inspected = window.MEGA.state.inspectCloudSnapshot(row.state, row.schema_version);
+    const inspected = window.GitLingo.state.inspectCloudSnapshot(row.state, row.schema_version);
     return inspected.ok ? { state: inspected.state, revision: row.revision } : null;
   }
 
@@ -292,7 +292,7 @@ window.MEGA = window.MEGA || {};
   async function prepareCloudConfirmation(userId, generation) {
     if (!cloudContextIsCurrent(userId, generation)) return false;
     if (cloudRowKind === "unsupported" || cloudRowKind === "error") return false;
-    const local = window.MEGA.state.getCloudSnapshot();
+    const local = window.GitLingo.state.getCloudSnapshot();
     if (!local.ok) {
       cloudComparison = null;
       cloudConfirm.hidden = true;
@@ -307,7 +307,7 @@ window.MEGA = window.MEGA || {};
   async function startCloudSave(userId, generation) {
     if (cloudBusy || !cloudComparison || !cloudContextIsCurrent(userId, generation)) return;
     setCloudBusy(true);
-    const currentLocal = window.MEGA.state.getCloudSnapshot();
+    const currentLocal = window.GitLingo.state.getCloudSnapshot();
     if (!currentLocal.ok) {
       cloudConfirm.hidden = true;
       cloudComparison = null;
@@ -336,7 +336,7 @@ window.MEGA = window.MEGA || {};
         cloudComparison = null;
         cloudConfirm.hidden = true;
         renderCloudRow(userId);
-        const latestLocal = window.MEGA.state.getCloudSnapshot();
+        const latestLocal = window.GitLingo.state.getCloudSnapshot();
         setCloudStatus(latestLocal.ok && latestLocal.fingerprint !== comparison.snapshot.fingerprint
           ? "Копия сохранена, но есть более новые локальные изменения."
           : "Копия сохранена на сервере.");
@@ -354,7 +354,7 @@ window.MEGA = window.MEGA || {};
         return;
       }
       if (result.reason === "local-changed") {
-        const latestLocal = window.MEGA.state.getCloudSnapshot();
+        const latestLocal = window.GitLingo.state.getCloudSnapshot();
         if (latestLocal.ok) showCloudConfirmation(userId, latestLocal);
         else {
           cloudComparison = null;

@@ -1,4 +1,4 @@
-window.MEGA = window.MEGA || {};
+window.GitLingo = window.GitLingo || {};
 
 (() => {
   const key = "mega-state";
@@ -293,7 +293,7 @@ window.MEGA = window.MEGA || {};
     state = checked.state;
     if (checked.changed) {
       status = makeStatus("migration-pending", { hasSavedState: true, migrated: true });
-      if (window.MEGA.deferStorageMigration === true) return;
+      if (window.GitLingo.deferStorageMigration === true) return;
       const result = persist(state, { backupRaw: raw });
       if (!result.ok) {
         // Keep the validated state available in memory, but protect the source string.
@@ -589,7 +589,7 @@ window.MEGA = window.MEGA || {};
 
   loadState();
 
-  window.MEGA.state = {
+  window.GitLingo.state = {
     get: getState,
     refresh: refreshState,
     save: saveState,

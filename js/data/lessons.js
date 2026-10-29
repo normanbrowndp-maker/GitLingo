@@ -1,6 +1,6 @@
-window.MEGA = window.MEGA || {};
+window.GitLingo = window.GitLingo || {};
 
-window.MEGA.data = {
+window.GitLingo.data = {
   config: {
     LIVES: 5,
     TEST_LENGTH: 5,
@@ -313,9 +313,9 @@ window.MEGA.data = {
   ]
 };
 
-window.MEGA.validateBank = function () {
+window.GitLingo.validateBank = function () {
   const errors = [];
-  const config = window.MEGA.data.config;
+  const config = window.GitLingo.data.config;
 
   function validateTask(task, label) {
     if (!task || typeof task.question !== "string" || !task.question.trim()) errors.push(`${label}: нет вопроса`);
@@ -373,7 +373,7 @@ window.MEGA.validateBank = function () {
     }
   }
 
-  for (const lesson of window.MEGA.data.lessons) {
+  for (const lesson of window.GitLingo.data.lessons) {
     if (!Array.isArray(lesson.goals) || lesson.goals.length !== 3 || lesson.goals.some((goal) => typeof goal !== "string" || !goal.trim())) {
       errors.push(`Урок ${lesson.id}: нужно указать 3 цели`);
     }
@@ -390,7 +390,7 @@ window.MEGA.validateBank = function () {
     }
   }
 
-  for (const bonus of window.MEGA.data.bonuses) {
+  for (const bonus of window.GitLingo.data.bonuses) {
     if (!Array.isArray(bonus.goals) || bonus.goals.length !== 3 || bonus.goals.some((goal) => typeof goal !== "string" || !goal.trim())) {
       errors.push(`Бонус ${bonus.id}: нужно указать 3 цели`);
     }
@@ -402,12 +402,12 @@ window.MEGA.validateBank = function () {
     bonus.tasks.forEach((task, index) => validateTask(task, `Бонус ${bonus.id}, задание ${index + 1}`));
   }
 
-  const courseUnit = window.MEGA.data.courseUnits?.find((unit) => unit.id === "terminal-paths-v1");
-  if (!courseUnit || !Array.isArray(window.MEGA.data.curriculumNodes)
-    || new Set(window.MEGA.data.curriculumNodes.map((node) => node.nodeId)).size !== window.MEGA.data.curriculumNodes.length) {
+  const courseUnit = window.GitLingo.data.courseUnits?.find((unit) => unit.id === "terminal-paths-v1");
+  if (!courseUnit || !Array.isArray(window.GitLingo.data.curriculumNodes)
+    || new Set(window.GitLingo.data.curriculumNodes.map((node) => node.nodeId)).size !== window.GitLingo.data.curriculumNodes.length) {
     errors.push("Курс: отсутствует содержимое или есть повтор ID узлов");
   } else {
-    const nodesById = new Map(window.MEGA.data.curriculumNodes.map((node) => [node.nodeId, node]));
+    const nodesById = new Map(window.GitLingo.data.curriculumNodes.map((node) => [node.nodeId, node]));
     const visiting = new Set();
     const visited = new Set();
     function visitNode(nodeId) {
@@ -422,7 +422,7 @@ window.MEGA.validateBank = function () {
       if (valid) visited.add(nodeId);
       return Boolean(valid);
     }
-    for (const node of window.MEGA.data.curriculumNodes) {
+    for (const node of window.GitLingo.data.curriculumNodes) {
       if (!node.nodeId || !visitNode(node.nodeId)) errors.push(`Карта курса: неверный узел или зависимость ${node.nodeId || ""}`);
     }
     const taskIds = new Set();
@@ -436,7 +436,7 @@ window.MEGA.validateBank = function () {
   }
 
   if (errors.length) {
-    for (const error of errors) console.error(`[MEGA.validateBank] ${error}`);
+    for (const error of errors) console.error(`[GitLingo.validateBank] ${error}`);
   }
   return errors.length === 0;
 };

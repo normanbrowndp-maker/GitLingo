@@ -1,6 +1,6 @@
-window.MEGA = window.MEGA || {};
+window.GitLingo = window.GitLingo || {};
 
-window.MEGA.taskChecks = {
+window.GitLingo.taskChecks = {
   option(task, selectedId) {
     return Boolean(task && task.options && task.options.some((option) => option.id === selectedId)
       && selectedId === task.answer);

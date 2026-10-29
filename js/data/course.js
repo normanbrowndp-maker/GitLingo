@@ -1,5 +1,5 @@
-window.MEGA = window.MEGA || {};
-window.MEGA.data = window.MEGA.data || {};
+window.GitLingo = window.GitLingo || {};
+window.GitLingo.data = window.GitLingo.data || {};
 
 (() => {
   const option = (id, text) => ({ id, text });
@@ -39,7 +39,7 @@ window.MEGA.data = window.MEGA.data || {};
     { id: "paths-t05", type: "choice", question: "В текущей папке /c/work/app уже есть файл config.txt. Какой относительный путь явно выбирает его в текущей папке?", options: [option("a", "./config.txt"), option("b", "../config.txt"), option("c", "app/config.txt")], answer: "a", explain: ". обозначает текущую папку; ./config.txt указывает на файл в ней.", hint: "Подсказки в контрольном тесте отключены." }
   ];
 
-  window.MEGA.data.courseUnits = [{
+  window.GitLingo.data.courseUnits = [{
     id: "terminal-paths-v1",
     title: "Терминал и файловые пути",
     accent: "#6558c9",
@@ -56,7 +56,7 @@ window.MEGA.data = window.MEGA.data || {};
     test: tests
   }];
 
-  window.MEGA.data.curriculumNodes = [
+  window.GitLingo.data.curriculumNodes = [
     { nodeId: "course-terminal-study", title: "Теория", kind: "study", unitId: "terminal-paths-v1", requires: [] },
     { nodeId: "course-terminal-practice", title: "Практика", kind: "practice", unitId: "terminal-paths-v1", requires: ["course-terminal-study"] },
     { nodeId: "course-terminal-check", title: "Контроль", kind: "check", unitId: "terminal-paths-v1", requires: ["course-terminal-practice"] }

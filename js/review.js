@@ -1,5 +1,5 @@
 ﻿(() => {
-  const { data, state, ui } = window.MEGA;
+  const { data, state, ui } = window.GitLingo;
   const $ = (selector) => document.querySelector(selector);
   const home = $("#review-home");
   const session = $("#review-session");
@@ -98,7 +98,7 @@
     staleList.replaceChildren();
     staleSection.hidden = true;
     $("#review-available").hidden = !status.writable;
-    if (!status.writable || !window.MEGA.validateBank()) {
+    if (!status.writable || !window.GitLingo.validateBank()) {
       $("#review-total").textContent = "Очередь пока недоступна.";
       $("#review-hearts-count").textContent = "—";
       $("#review-empty").hidden = true;
@@ -176,7 +176,7 @@
 
   function startBatch(scope = null) {
     state.refresh();
-    if (!state.getStorageStatus().writable || !window.MEGA.validateBank()) { updateHome(); return; }
+    if (!state.getStorageStatus().writable || !window.GitLingo.validateBank()) { updateHome(); return; }
     const items = filterScope(resolveQueue().valid, scope).slice(0, 5);
     if (!items.length) { updateHome(); return; }
     sessionScope = scope ? { ...scope } : null;
@@ -206,7 +206,7 @@
       return option.code ? `${option.text} (${option.code})` : option.text;
     }
     if (task.type === "hotkeys") return task.options.find((item) => item.id === task.answer).keys.join(" + ");
-    if (task.type === "output-reading") return task.options.find((item) => window.MEGA.taskChecks.outputReading(task, item.id))?.text || "разбор вывода";
+    if (task.type === "output-reading") return task.options.find((item) => window.GitLingo.taskChecks.outputReading(task, item.id))?.text || "разбор вывода";
     if (task.type === "builder") return task.answer.join(" ");
     return task.pairs.map((pair) => `${pair.term} — ${pair.def}`).join("; ");
   }
@@ -305,7 +305,7 @@
         if (selectedTerm === null) return;
         const term = selectedTerm;
         selectedTerm = null;
-        if (!window.MEGA.taskChecks.matchingPair(term, i)) {
+        if (!window.GitLingo.taskChecks.matchingPair(term, i)) {
           submit(false, { kind: "matching", pairs: [{ termIndex: term, definitionIndex: i }] });
           return;
         }
@@ -459,12 +459,12 @@
     if (item.type === "choice" || item.type === "hotkeys" || item.type === "output-reading") {
       answer = { kind: "option", selected: selectedAnswer || "" };
       correct = item.type === "output-reading"
-        ? window.MEGA.taskChecks.outputReading(item.task, selectedAnswer)
-        : window.MEGA.taskChecks.option(item.task, selectedAnswer);
+        ? window.GitLingo.taskChecks.outputReading(item.task, selectedAnswer)
+        : window.GitLingo.taskChecks.option(item.task, selectedAnswer);
     } else if (item.type === "builder") {
       const blocks = selectedBlocks.map((blockIndex) => item.task.blocks[blockIndex]);
       answer = { kind: "builder", blocks };
-      correct = window.MEGA.taskChecks.builder(item.task, blocks);
+      correct = window.GitLingo.taskChecks.builder(item.task, blocks);
     }
     submit(correct, answer);
   }

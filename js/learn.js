@@ -1,5 +1,5 @@
 (() => {
-  const { data, state, ui } = window.MEGA;
+  const { data, state, ui } = window.GitLingo;
   const lessonList = document.querySelector("#lesson-list");
   const bonusList = document.querySelector("#bonus-list");
   const courseNodeList = document.querySelector("#course-node-list");
@@ -12,7 +12,7 @@
   let levelDialog;
   let levelDialogMode = "onboarding";
 
-  if (!window.MEGA.validateBank()) return;
+  if (!window.GitLingo.validateBank()) return;
 
   function renderLessons() {
     const saved = state.get();

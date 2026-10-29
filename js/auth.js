@@ -1,4 +1,4 @@
-window.MEGA = window.MEGA || {};
+window.GitLingo = window.GitLingo || {};
 
 (() => {
   const recoveryMarkerKey = "mega-auth-recovery-pending";
@@ -307,11 +307,11 @@ window.MEGA = window.MEGA || {};
     if (progressSaveInProgress) return { ok: false, reason: "busy" };
     progressSaveInProgress = true;
     try {
-      const inspected = window.MEGA.state && window.MEGA.state.inspectCloudSnapshot(snapshot, schemaVersion);
+      const inspected = window.GitLingo.state && window.GitLingo.state.inspectCloudSnapshot(snapshot, schemaVersion);
       if (!inspected || !inspected.ok) return { ok: false, reason: "invalid-local-state" };
       const owner = await currentProgressOwner();
       if (!owner.ok) return owner;
-      const latestLocal = window.MEGA.state.getCloudSnapshot();
+      const latestLocal = window.GitLingo.state.getCloudSnapshot();
       if (!latestLocal.ok) return { ok: false, reason: "invalid-local-state" };
       if (typeof expectedFingerprint === "string" && latestLocal.fingerprint !== expectedFingerprint) {
         return { ok: false, reason: "local-changed" };
@@ -428,7 +428,7 @@ window.MEGA = window.MEGA || {};
       return;
     }
 
-    const config = window.MEGA.supabaseConfig;
+    const config = window.GitLingo.supabaseConfig;
     const hasAnyConfig = Boolean(config && (config.projectUrl || config.publishableKey));
     if (!hasAnyConfig) {
       publishReadyDefaults("unconfigured");
@@ -462,7 +462,7 @@ window.MEGA = window.MEGA || {};
     }
   }
 
-  window.MEGA.auth = Object.freeze({
+  window.GitLingo.auth = Object.freeze({
     getState,
     signUp,
     signIn,

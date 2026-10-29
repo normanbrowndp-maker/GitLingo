@@ -1,4 +1,4 @@
-window.MEGA = window.MEGA || {};
+window.GitLingo = window.GitLingo || {};
 
 (() => {
   let toastTimer;
@@ -17,8 +17,8 @@ window.MEGA = window.MEGA || {};
   }
 
   function updateStreak() {
-    if (!window.MEGA.state) return;
-    const streak = window.MEGA.state.get().streak;
+    if (!window.GitLingo.state) return;
+    const streak = window.GitLingo.state.get().streak;
     for (const element of document.querySelectorAll("#streak-count, [data-streak-count], .site-header__streak")) {
       const value = element.lastElementChild;
       if (value?.tagName === "SPAN") value.textContent = String(streak);
@@ -106,7 +106,7 @@ window.MEGA = window.MEGA || {};
     return result;
   }
 
-  window.MEGA.ui = {
+  window.GitLingo.ui = {
     icon: createIcon,
     updateStreak,
     streakLabel,
