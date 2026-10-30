@@ -8,7 +8,8 @@
   <script>
     try {
       const storedTheme = localStorage.getItem("mega-theme");
-      const savedTheme = storedTheme === "light" || storedTheme === "dark" ? storedTheme : null;
+      const urlTheme = new URLSearchParams(location.search).get("theme");
+      const savedTheme = (urlTheme === "light" || urlTheme === "dark") ? urlTheme : (storedTheme === "light" || storedTheme === "dark" ? storedTheme : null);
       document.documentElement.dataset.theme = savedTheme || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
     } catch {
       document.documentElement.dataset.theme = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
@@ -65,44 +66,45 @@
   </header>
 
   <main>
-    <section class="learn-section" aria-labelledby="learn-title">
-      <h1 id="learn-title">Выбери урок</h1>
-      <div class="learn-actions">
-        <a class="btn btn--primary" href="lesson.html?id=1" id="continue-learning">Продолжить</a>
-        <a class="btn btn--secondary" href="review.html" id="review-errors-link" hidden>Работа над ошибками (0)</a>
-        <a class="btn btn--secondary" href="lesson.html?id=1&amp;mode=restart" id="restart-hearts-link" hidden>Перезапустить урок и восстановить сердца</a>
-        <button type="button" class="btn btn--secondary" id="change-level">Изменить уровень</button>
-      </div>
-      <section class="course-entry" aria-labelledby="course-entry-title">
-        <h2 id="course-entry-title">Новый курс</h2>
-        <p>Терминал и файловые пути. Примеры используют Git Bash для Windows; команды здесь не запускаются.</p>
-        <ul class="lesson-list course-node-list" id="course-node-list">
-          <li><a class="lesson-node" href="lesson.html?node=course-terminal-study">Терминал и файловые пути · Теория</a></li>
-          <li><a class="lesson-node" href="lesson.html?node=course-terminal-practice">Практика</a></li>
-          <li><a class="lesson-node" href="lesson.html?node=course-terminal-check">Контрольный тест</a></li>
+    <div class="learning-map" id="learning-map">
+      <svg class="learning-map__connectors" id="learning-map-connectors" aria-hidden="true" focusable="false"></svg>
+      <section class="learn-section" aria-labelledby="learn-title">
+        <h1 id="learn-title">Выбери урок</h1>
+        <div class="learn-actions">
+          <a class="btn btn--primary" href="lesson.html?id=1" id="continue-learning">Продолжить</a>
+          <a class="btn btn--secondary" href="review.html" id="review-errors-link" hidden>Работа над ошибками (0)</a>
+          <a class="btn btn--secondary" href="lesson.html?id=1&amp;mode=restart" id="restart-hearts-link" hidden>Перезапустить урок и восстановить сердца</a>
+          <button type="button" class="btn btn--secondary" id="change-level">Изменить уровень</button>
+        </div>
+        <div class="learning-route" id="course-node-list">
+          <ul class="lesson-list" id="lesson-list">
+            <li><a class="lesson-node" href="lesson.html?id=1" data-status="open">Урок 1: Основы терминала</a></li>
+            <li><a class="lesson-node" href="lesson.html?id=2" data-status="locked">Урок 2: Первый коммит</a></li>
+            <li><a class="lesson-node" href="lesson.html?id=3" data-status="locked">Урок 3: Ветки</a></li>
+            <li><a class="lesson-node" href="lesson.html?id=4" data-status="locked">Урок 4: Удалённые репозитории</a></li>
+            <li><a class="lesson-node" href="lesson.html?id=5" data-status="locked">Урок 5: Pull request</a></li>
+          </ul>
+          <ul class="lesson-list course-node-list" aria-label="Углубление: работа с файловыми путями">
+            <li><a class="lesson-node lesson-node--course" href="lesson.html?node=course-terminal-study" data-status="open" data-course-node="course-terminal-study">Теория: файловые пути</a></li>
+            <li><a class="lesson-node lesson-node--course" href="lesson.html?node=course-terminal-practice" data-status="locked" data-course-node="course-terminal-practice">Практика с файловыми путями</a></li>
+            <li><a class="lesson-node lesson-node--course" href="lesson.html?node=course-terminal-check" data-status="locked" data-course-node="course-terminal-check">Тест по файловым путям</a></li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="bonus-section" aria-labelledby="bonus-title">
+        <h2 id="bonus-title">Бонусы</h2>
+        <ul class="bonus-grid" id="bonus-list">
+          <li class="bonus-card"><a href="lesson.html?id=b1" data-bonus="figma">Знакомство с Figma</a></li>
+          <li class="bonus-card"><a href="lesson.html?id=b2" data-bonus="vscode">Знакомство с VS Code</a></li>
         </ul>
       </section>
-      <ul class="lesson-list" id="lesson-list">
-        <li><a class="lesson-node" href="lesson.html?id=1" data-status="open">Урок 1: Основы терминала</a></li>
-        <li><a class="lesson-node" href="lesson.html?id=2" data-status="locked">Урок 2: Первый коммит</a></li>
-        <li><a class="lesson-node" href="lesson.html?id=3" data-status="locked">Урок 3: Ветки</a></li>
-        <li><a class="lesson-node" href="lesson.html?id=4" data-status="locked">Урок 4: Удалённые репозитории</a></li>
-        <li><a class="lesson-node" href="lesson.html?id=5" data-status="locked">Урок 5: Pull request</a></li>
-      </ul>
-    </section>
-
-    <section class="bonus-section" aria-labelledby="bonus-title">
-      <h2 id="bonus-title">Бонусы</h2>
-      <ul class="bonus-grid" id="bonus-list">
-        <li class="bonus-card"><a href="lesson.html?id=6" data-bonus="figma">Знакомство с Figma</a></li>
-        <li class="bonus-card"><a href="lesson.html?id=7" data-bonus="vscode">Знакомство с VS Code</a></li>
-      </ul>
-    </section>
+    </div>
   </main>
 
   <footer class="site-footer">
     <button type="button" id="reset-progress" class="btn btn--secondary" data-reset-progress>Сбросить прогресс</button>
-    <p>GitLingo</p>
+    <p>GitLingo · <a href="feedback.html">Оценить сайт</a></p>
   </footer>
 </body>
 </html>

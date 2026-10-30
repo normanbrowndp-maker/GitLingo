@@ -28,6 +28,18 @@
   font-size: 1.65rem;
   font-weight: 600;
   line-height: 1;
+  cursor: pointer;
+  transition: transform var(--time-fast), background-color var(--time-theme), border-color var(--time-theme);
+}
+
+#exit-btn:hover {
+  background-color: var(--bg);
+  border-color: var(--control-border);
+}
+
+#exit-btn:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
 }
 
 .lesson__topbar form {
@@ -67,6 +79,8 @@
 .lesson__body {
   display: flex;
   width: min(100%, 720px);
+  min-width: 0;
+  max-width: 100%;
   flex-direction: column;
   gap: 1.5rem;
   margin-inline: auto;
@@ -76,33 +90,41 @@
 
 .lesson-progress-nav {
   display: grid;
-  gap: 0.6rem;
+  width: 100%;
+  min-width: 0;
+  gap: 0.3rem;
 }
 
 #lesson-breadcrumb {
+  margin: 0;
   color: var(--lesson-accent, var(--text-muted));
+  font-size: 0.875rem;
   font-weight: 800;
 }
 
 .lesson-steps {
   display: grid;
+  width: 100%;
+  min-width: 0;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0.4rem;
 }
 
 .lesson-steps li {
-  padding: 0.45rem 0.25rem;
-  border-bottom: 3px solid var(--border);
-  color: var(--text-muted);
-  font-size: 0.75rem;
-  font-weight: 800;
-  text-align: center;
+  min-width: 0;
+  height: 3px;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: var(--border);
+  color: transparent;
+  font-size: 0;
+  line-height: 0;
+  text-indent: -9999px;
 }
 
-.lesson-steps li.is-active {
-  border-color: var(--lesson-accent, var(--border));
-  color: var(--lesson-accent, var(--text-muted));
-}
+.lesson-steps li.is-completed { background: color-mix(in srgb, var(--lesson-accent, var(--text-muted)) 62%, var(--border)); }
+.lesson-steps li.is-active { height: 4px; background: var(--lesson-accent, var(--text-muted)); }
+.lesson-steps li.is-upcoming { background: var(--border); }
 
 .lesson-screen {
   display: grid;
@@ -166,18 +188,18 @@
 }
 
 .lesson-screen__actions #start-lesson-btn {
-  border-color: var(--lesson-accent);
-  background: var(--lesson-accent);
-  color: #000000;
-  box-shadow: 0 4px 0 var(--lesson-accent);
+  border-color: var(--brand);
+  background: var(--brand);
+  color: var(--brand-button-text);
+  box-shadow: 0 2px 0 var(--brand-edge);
 }
 
 .lesson-screen__actions #start-lesson-btn:hover:not(:disabled):not([aria-disabled="true"]) {
-  box-shadow: 0 6px 0 var(--lesson-accent);
+  box-shadow: 0 3px 0 var(--brand-edge);
 }
 
 .lesson-screen__actions #start-lesson-btn:active:not(:disabled):not([aria-disabled="true"]) {
-  box-shadow: 0 0 0 var(--lesson-accent);
+  box-shadow: 0 0 0 var(--brand-edge);
 }
 
 .theory-card {
@@ -225,19 +247,21 @@
 }
 
 .theory-dots button {
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   border: 1px solid var(--border);
   border-radius: 50%;
   background: var(--card);
   color: var(--text);
   font-weight: 800;
+  cursor: pointer;
+  transition: transform var(--time-fast), background-color var(--time-theme), border-color var(--time-theme);
 }
 
 .theory-dots button[aria-current="step"] {
   border-color: var(--lesson-accent, var(--border));
   background: var(--lesson-accent, var(--border));
-  color: var(--accent-button-text);
+  color: var(--brand-button-text);
 }
 
 .task-guidance {
@@ -306,37 +330,172 @@
   gap: 0.75rem;
 }
 
+[data-task-template="choice"] > h2 {
+  grid-column: 1 / -1;
+  margin: 0 0 0.5rem 0;
+}
+
 .choice-card {
   position: relative;
-  display: grid;
-  min-height: 112px;
-  place-items: center;
-  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 96px;
+  min-width: 0;
+  width: 100%;
+  padding: 1rem 1.85rem;
   border: 2px solid var(--border);
   border-radius: var(--radius-lg);
   background: var(--card);
   color: var(--text);
-  box-shadow: var(--shadow-raised);
-  font-size: 1.15rem;
+  box-shadow: 0 2px 0 var(--border);
+  font-size: 1.1rem;
   font-weight: 800;
+  text-align: center;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  cursor: pointer;
   transition: transform var(--time-fast), box-shadow var(--time-fast), background-color var(--time-theme), color var(--time-theme), border-color var(--time-theme);
+}
+
+.choice-card code {
+  max-width: 100%;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  font-family: var(--font-code);
+  font-size: 1.05rem;
 }
 
 .choice-shortcut {
   position: absolute;
-  top: 0.55rem;
-  right: 0.55rem;
+  top: 0.5rem;
+  right: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 5px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text-muted);
+  font-family: var(--font-code);
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1;
+  pointer-events: none;
 }
 
-.page-lesson .is-selected {
-  border-color: var(--lesson-accent) !important;
+.choice-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 0 var(--border);
+}
+
+.choice-card:active {
+  transform: translateY(1px);
+  box-shadow: 0 0 0 var(--border);
+}
+
+.choice-card:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+}
+
+[data-task-template="choice"] > h2 {
+  grid-column: 1 / -1;
+  margin: 0 0 0.5rem 0;
+}
+
+.choice-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 96px;
+  min-width: 0;
+  width: 100%;
+  padding: 1rem 1.85rem;
+  border: 2px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--card);
+  color: var(--text);
+  box-shadow: 0 2px 0 var(--border);
+  font-size: 1.1rem;
+  font-weight: 800;
+  text-align: center;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  cursor: pointer;
+  transition: transform var(--time-fast), box-shadow var(--time-fast), background-color var(--time-theme), color var(--time-theme), border-color var(--time-theme);
+}
+
+.choice-card code {
+  max-width: 100%;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  font-family: var(--font-code);
+  font-size: 1.05rem;
+}
+
+.choice-shortcut {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 5px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text-muted);
+  font-family: var(--font-code);
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.page-lesson .is-selected,
+.page-lesson .choice-card.is-selected {
+  border-color: var(--brand) !important;
   background-color: var(--brand-soft) !important;
+  color: var(--text) !important;
 }
 
 .page-lesson .choice-card.is-correct,
+.page-lesson .choice-card.is-selected.is-correct {
+  border-color: var(--success) !important;
+  background-color: var(--success-bg) !important;
+  color: var(--text) !important;
+}
+
 .page-lesson .choice-card.is-wrong,
+.page-lesson .choice-card.is-selected.is-wrong,
 .page-lesson .match-option.is-wrong {
-  animation: shake 200ms ease-in-out;
+  border-color: var(--error) !important;
+  background-color: var(--error-bg) !important;
+  color: var(--text) !important;
+}
+
+.page-lesson .choice-card.is-disabled:not(.is-correct):not(.is-wrong) {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .page-lesson .choice-card.is-correct::before,
@@ -364,13 +523,19 @@
   animation: none;
 }
 
-.choice-card:hover {
-  transform: translateY(-2px);
+.choice-card:hover:not(:disabled):not(.is-disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 0 var(--border);
 }
 
-.choice-card:active {
-  transform: translateY(3px);
-  box-shadow: 0 1px 0 var(--border);
+.choice-card:active:not(:disabled):not(.is-disabled) {
+  transform: translateY(1px);
+  box-shadow: 0 0 0 var(--border);
+}
+
+.choice-card:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
 }
 
 [data-task-template="builder"]:not([hidden]) {
@@ -443,6 +608,7 @@
 .chip {
   display: inline-flex;
   min-height: 44px;
+  min-width: 44px;
   align-items: center;
   justify-content: center;
   padding: 0.5rem 1rem;
@@ -450,18 +616,25 @@
   border-radius: var(--radius-pill);
   background: var(--card);
   color: var(--text);
-  box-shadow: 0 4px 0 var(--border);
+  box-shadow: 0 2px 0 var(--border);
   font-weight: 800;
+  cursor: pointer;
   transition: transform var(--time-fast), box-shadow var(--time-fast), background-color var(--time-theme), color var(--time-theme), border-color var(--time-theme);
 }
 
 .chip:hover {
-  transform: translateY(-2px);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 0 var(--border);
 }
 
 .chip:active {
-  transform: translateY(3px);
-  box-shadow: 0 1px 0 var(--border);
+  transform: translateY(1px);
+  box-shadow: 0 0 0 var(--border);
+}
+
+.chip:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
 }
 
 [data-task-template="hotkeys"]:not([hidden]) {
@@ -469,23 +642,44 @@
   gap: 0.75rem;
 }
 
+[data-task-template="hotkeys"] > h2,
 [data-task-template="hotkeys"] > p {
   grid-column: 1 / -1;
+  margin: 0;
 }
 
 [data-task-template="hotkeys"] > button {
+  position: relative;
   display: flex;
   min-height: 60px;
+  min-width: 44px;
   align-items: center;
   justify-content: center;
   gap: 0.4rem;
-  padding: 0.5rem;
+  padding: 0.5rem 1.85rem 0.5rem 0.5rem;
   border: 2px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--card);
   color: var(--text);
-  box-shadow: 0 4px 0 var(--border);
+  box-shadow: 0 2px 0 var(--border);
   font-weight: 800;
+  cursor: pointer;
+  transition: transform var(--time-fast), box-shadow var(--time-fast), background-color var(--time-theme), color var(--time-theme), border-color var(--time-theme);
+}
+
+[data-task-template="hotkeys"] > button:hover:not(:disabled):not(.is-disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 0 var(--border);
+}
+
+[data-task-template="hotkeys"] > button:active:not(:disabled):not(.is-disabled) {
+  transform: translateY(1px);
+  box-shadow: 0 0 0 var(--border);
+}
+
+[data-task-template="hotkeys"] > button:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
 }
 
 [data-task-template="matching"]:not([hidden]) {
@@ -521,10 +715,33 @@
   border-radius: 12px;
   background: var(--card);
   color: var(--text);
+  box-shadow: 0 2px 0 var(--border);
   font-size: clamp(0.68rem, 2.8vw, 0.9rem);
   font-weight: 800;
   line-height: 1.3;
   overflow-wrap: anywhere;
+  cursor: pointer;
+  transition: transform var(--time-fast), box-shadow var(--time-fast), background-color var(--time-theme), color var(--time-theme), border-color var(--time-theme);
+}
+
+.lesson__matching-column button:hover:not(:disabled):not(.is-matched) {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 0 var(--border);
+}
+
+.lesson__matching-column button:active:not(:disabled):not(.is-matched) {
+  transform: translateY(1px);
+  box-shadow: 0 0 0 var(--border);
+}
+
+.lesson__matching-column button:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.lesson__matching-column button.is-selected {
+  border-color: var(--brand) !important;
+  background-color: var(--brand-soft) !important;
 }
 
 .lesson__matching-column button.is-matched {
@@ -580,9 +797,57 @@
 }
 
 #check-btn:not(:disabled):not([aria-disabled="true"]) {
-  border-color: color-mix(in srgb, var(--lesson-accent) 70%, #000);
-  background: color-mix(in srgb, var(--lesson-accent) 70%, #000);
-  color: #fff;
+  border-color: var(--brand);
+  background: var(--brand);
+  color: var(--brand-button-text);
+  box-shadow: 0 2px 0 var(--brand-edge);
+}
+
+#check-btn:not(:disabled):not([aria-disabled="true"]):hover {
+  box-shadow: 0 3px 0 var(--brand-edge);
+}
+
+#check-btn:not(:disabled):not([aria-disabled="true"]):active {
+  box-shadow: 0 0 0 var(--brand-edge);
+}
+
+[data-lesson-mode="practice"] #check-btn:not(:disabled):not([aria-disabled="true"]),
+[data-lesson-mode="test"] #check-btn:not(:disabled):not([aria-disabled="true"]),
+[data-lesson-mode="practice"] #continue-btn:not(:disabled):not([aria-disabled="true"]),
+[data-lesson-mode="test"] #continue-btn:not(:disabled):not([aria-disabled="true"]) {
+  border-color: var(--practice-accent);
+  background: var(--practice-accent);
+  color: var(--practice-button-text);
+  box-shadow: 0 2px 0 var(--practice-edge);
+}
+
+[data-lesson-mode="practice"] #check-btn:not(:disabled):not([aria-disabled="true"]):hover,
+[data-lesson-mode="test"] #check-btn:not(:disabled):not([aria-disabled="true"]):hover,
+[data-lesson-mode="practice"] #continue-btn:not(:disabled):not([aria-disabled="true"]):hover,
+[data-lesson-mode="test"] #continue-btn:not(:disabled):not([aria-disabled="true"]):hover {
+  box-shadow: 0 3px 0 var(--practice-edge);
+}
+
+[data-lesson-mode="practice"] #check-btn:not(:disabled):not([aria-disabled="true"]):active,
+[data-lesson-mode="test"] #check-btn:not(:disabled):not([aria-disabled="true"]):active,
+[data-lesson-mode="practice"] #continue-btn:not(:disabled):not([aria-disabled="true"]):active,
+[data-lesson-mode="test"] #continue-btn:not(:disabled):not([aria-disabled="true"]):active {
+  box-shadow: 0 0 0 var(--practice-edge);
+}
+
+.test-badge {
+  display: inline-flex;
+  align-items: center;
+  align-self: start;
+  min-height: 32px;
+  padding: 0.35rem 0.85rem;
+  border: 1px solid var(--practice-accent);
+  border-radius: var(--radius-pill);
+  background: var(--practice-soft);
+  color: var(--practice-accent);
+  font-size: 0.85rem;
+  font-weight: 800;
+  letter-spacing: 0.3px;
 }
 
 .xp-popup {
@@ -613,11 +878,99 @@
 
 @media (min-width: 600px) {
   [data-task-template="choice"]:not([hidden]) {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+}
+
+[data-task-template="choice"] > h2 {
+  grid-column: 1 / -1;
+  margin: 0 0 0.5rem 0;
+}
+
+.choice-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 96px;
+  min-width: 0;
+  width: 100%;
+  padding: 1rem 1.85rem;
+  border: 2px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--card);
+  color: var(--text);
+  box-shadow: 0 2px 0 var(--border);
+  font-size: 1.1rem;
+  font-weight: 800;
+  text-align: center;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  cursor: pointer;
+  transition: transform var(--time-fast), box-shadow var(--time-fast), background-color var(--time-theme), color var(--time-theme), border-color var(--time-theme);
+}
+
+.choice-card code {
+  max-width: 100%;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  font-family: var(--font-code);
+  font-size: 1.05rem;
+}
+
+.choice-shortcut {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 5px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text-muted);
+  font-family: var(--font-code);
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.choice-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 0 var(--border);
+}
+
+.choice-card:active {
+  transform: translateY(1px);
+  box-shadow: 0 0 0 var(--border);
+}
+
+.choice-card:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  [data-task-template="choice"] > .choice-card:last-child:nth-child(even) {
+    grid-column: 1 / -1;
   }
 
   [data-task-template="hotkeys"]:not([hidden]) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  [data-task-template="hotkeys"] > button:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
   }
 }
 
@@ -657,12 +1010,25 @@
   .lesson__matching-column button.match-flash,
   .lesson__matching-column button.is-wrong,
   .lives--break .icon,
-  .xp-popup {
+  .xp-popup,
+  .choice-card,
+  .chip,
+  [data-task-template="hotkeys"] > button,
+  .lesson__matching-column button {
     animation: none !important;
+    transition: none !important;
   }
 
   .lives--break .icon,
-  .xp-popup {
+  .xp-popup,
+  .choice-card:hover,
+  .choice-card:active,
+  .chip:hover,
+  .chip:active,
+  [data-task-template="hotkeys"] > button:hover,
+  [data-task-template="hotkeys"] > button:active,
+  .lesson__matching-column button:hover,
+  .lesson__matching-column button:active {
     transform: none !important;
   }
 }

@@ -109,6 +109,12 @@
 
   function setScreen(nextScreen) {
     screen = nextScreen;
+    const isPracticeMode = (screen === "tasks" && isFreePractice) || (isCourse && courseNode.kind === "practice");
+    const isTestMode = screen === "test" || (isCourse && courseNode.kind === "check");
+    const currentMode = isTestMode ? "test" : (isPracticeMode ? "practice" : "study");
+    document.body.dataset.lessonMode = currentMode;
+    const accentVar = (isTestMode || isPracticeMode) ? "var(--practice-accent)" : (isBonus ? (unit.accent || "var(--brand)") : "var(--brand)");
+    document.documentElement.style.setProperty("--lesson-accent", accentVar);
     introScreen.hidden = screen !== "intro";
     theoryScreen.hidden = screen !== "theory";
     taskTitle.hidden = screen !== "tasks" && screen !== "test";
@@ -119,14 +125,24 @@
     progressContainer.hidden = progress.hidden;
     testBadge.hidden = screen !== "test";
     livesContainer.hidden = screen !== "tasks" && screen !== "test";
-    const labels = { intro: "Введение", theory: "Теория", tasks: "Задания", test: "Тест" };
-    document.querySelector("#lesson-breadcrumb").textContent = `${lessonName} · ${labels[screen]}`;
+    const activeStep = lessonSteps.find((step) => step.dataset.step === screen);
+    const stageLabel = isCourse && courseNode.kind !== "study"
+      ? (courseNode.kind === "check" ? "Тест" : "Практика")
+      : (activeStep?.textContent.trim() || screen);
+    document.querySelector("#lesson-breadcrumb").textContent = `${lessonName} · ${stageLabel}`;
+    const visibleSteps = lessonSteps.filter((step) => !(isBonus && step.dataset.step === "test"));
+    const activeIndex = visibleSteps.indexOf(activeStep);
     for (const step of lessonSteps) {
       const active = step.dataset.step === screen;
       step.classList.toggle("is-active", active);
+      const stepIndex = visibleSteps.indexOf(step);
+      step.classList.toggle("is-completed", stepIndex >= 0 && stepIndex < activeIndex);
+      step.classList.toggle("is-upcoming", stepIndex > activeIndex);
       if (active) step.setAttribute("aria-current", "step");
       else step.removeAttribute("aria-current");
       step.hidden = isBonus && step.dataset.step === "test";
+      const stateName = active ? "текущий этап" : (stepIndex >= 0 && stepIndex < activeIndex ? "завершён" : "предстоит");
+      step.setAttribute("aria-label", `${step.textContent.trim()}: ${stateName}`);
     }
     if (screen === "test") taskTitle.textContent = `Мини-тест: ${unit.title}`;
     else if (screen === "tasks") taskTitle.textContent = unit.title;
@@ -251,20 +267,31 @@
     updateCheckState();
   }
 
+  function shouldShowChoiceDescriptions() {
+    const lessonOrder = data.lessons.indexOf(unit);
+    return !isTest && !isFreePractice && !isCourse && !isBonus
+      && state.get().profile.level === "Ничего"
+      && lessonOrder >= 0 && lessonOrder < 3;
+  }
+
   function renderChoice(task, section) {
     const heading = section.querySelector("h2");
     const options = ui.shuffle(task.options);
+    const showDescriptions = task.type !== "choice" || shouldShowChoiceDescriptions();
     const buttons = options.map((option, index) => {
       const button = document.createElement("button");
       button.type = "button";
       button.className = "choice-card";
       button.dataset.answer = option.id;
-      button.setAttribute("aria-label", `Вариант ${index + 1}: ${option.text}${option.code ? `, ${option.code}` : ""}`);
+      const visibleText = !option.code || showDescriptions ? option.text : "";
+      button.setAttribute("aria-label", `Вариант ${index + 1}: ${visibleText}${option.code ? `${visibleText ? ", " : ""}${option.code}` : ""}`);
       button.addEventListener("click", () => setAnswerSelection(button, section));
 
-      const label = document.createElement("span");
-      label.textContent = option.text;
-      button.append(label);
+      if (visibleText) {
+        const label = document.createElement("span");
+        label.textContent = visibleText;
+        button.append(label);
+      }
       if (option.code) {
         const code = document.createElement("code");
         code.textContent = option.code;
@@ -838,8 +865,12 @@
       { label: "Начать тест", value: "start", className: "btn btn--primary" }
     ]).then((choice) => {
       if (choice !== "start") return;
-      if (noErrors) earnedXp += data.config.XP_PERFECT_BONUS;
-      resultLesson = { correct: correctTasks, firstTryCorrect, total: unit.tasks.length, xp: earnedXp, errors: wrongAnswers };
+      // Практика попадает в результат только если в этой попытке она реально выполнялась;
+      // иначе отдельный тест не должен смешиваться с непройденной практикой (0/10, заниженная точность).
+      const practiceRan = correctTasks > 0 || firstTryCorrect > 0 || wrongAnswers > 0;
+      resultLesson = practiceRan
+        ? { correct: correctTasks, firstTryCorrect, total: unit.tasks.length, xp: earnedXp, errors: wrongAnswers }
+        : { correct: 0, firstTryCorrect: 0, total: 0, xp: 0, errors: 0 };
       isTest = true;
       history.replaceState(null, "", `lesson.html?id=${lessonId}&mode=test`);
       taskGuidance.hidden = true;
@@ -1118,11 +1149,14 @@
       }
     }
 
-    if (currentTask && (currentTask.type === "choice" || currentTask.type === "hotkeys" || currentTask.type === "output-reading") && /^[1-4]$/.test(event.key)
+    if (currentTask && (currentTask.type === "choice" || currentTask.type === "hotkeys" || currentTask.type === "output-reading")
       && !event.target.closest("input, textarea, select, [contenteditable='true']")) {
       const options = [...currentSection.querySelectorAll("button[data-answer]")];
-      event.preventDefault();
-      options[Number(event.key) - 1]?.click();
+      const optionIndex = Number(event.key) - 1;
+      if (Number.isInteger(optionIndex) && optionIndex >= 0 && optionIndex < options.length) {
+        event.preventDefault();
+        options[optionIndex].click();
+      }
     }
   });
 

@@ -8,7 +8,8 @@
   <script>
     try {
       const storedTheme = localStorage.getItem("mega-theme");
-      const savedTheme = storedTheme === "light" || storedTheme === "dark" ? storedTheme : null;
+      const urlTheme = new URLSearchParams(location.search).get("theme");
+      const savedTheme = (urlTheme === "light" || urlTheme === "dark") ? urlTheme : (storedTheme === "light" || storedTheme === "dark" ? storedTheme : null);
       document.documentElement.dataset.theme = savedTheme || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
     } catch {
       document.documentElement.dataset.theme = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";

@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="ru">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Оценить сайт — GitLingo</title>
+  <meta name="application-name" content="GitLingo">
+  <script>
+    window.GitLingo = window.GitLingo || {};
+    window.GitLingo.deferStorageMigration = true;
+    try {
+      const storedTheme = localStorage.getItem("mega-theme");
+      const savedTheme = storedTheme === "light" || storedTheme === "dark" ? storedTheme : null;
+      document.documentElement.dataset.theme = savedTheme || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    } catch {
+      document.documentElement.dataset.theme = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    }
+  </script>
+  <link rel="stylesheet" href="css/tokens.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/auth.css">
+  <script src="js/storage.js" defer></script>
+  <script src="assets/vendor/supabase-js-2.118.0.js" defer></script>
+  <script src="js/supabase-config.js" defer></script>
+  <script src="js/auth.js" defer></script>
+  <script src="js/nav.js" defer></script>
+  <script src="js/feedback.js" defer></script>
+</head>
+
+<body class="page-auth">
+  <header class="site-header">
+    <a class="site-header__logo" href="index.html" data-home-link><span>Git</span><span
+        class="site-header__accent">Lingo</span></a>
+    <nav class="site-header__nav" aria-label="Основная навигация">
+      <a href="learn.html" data-nav-link>Учиться</a>
+      <a href="auth.html" data-nav-link>Аккаунт</a>
+    </nav>
+    <div class="site-header__status">
+      <button type="button" id="theme-toggle" class="theme-toggle" aria-label="Включить тёмную тему"
+        aria-pressed="false">
+        <svg class="theme-toggle__icon theme-toggle__icon--moon" viewBox="0 0 24 24" aria-hidden="true"
+          focusable="false">
+          <use href="#icon-moon"></use>
+        </svg>
+        <svg class="theme-toggle__icon theme-toggle__icon--sun" viewBox="0 0 24 24" aria-hidden="true"
+          focusable="false">
+          <use href="#icon-sun"></use>
+        </svg>
+        <span class="visually-hidden">Переключить тему</span>
+      </button>
+    </div>
+  </header>
+
+  <main class="auth-main">
+    <section class="auth-card" aria-labelledby="feedback-title">
+      <p class="auth-eyebrow">GitLingo</p>
+      <h1 id="feedback-title">Оценить сайт</h1>
+
+      <section class="auth-state" data-feedback-loading aria-live="polite">
+        <p>Проверяем состояние аккаунта…</p>
+      </section>
+
+      <section class="auth-state" data-feedback-guest hidden>
+        <p>Отправлять отзыв могут только пользователи, вошедшие в аккаунт. Форму видно всем, но отправка требует входа.
+        </p>
+        <a class="btn btn--primary auth-submit" href="auth.html">Войти или создать аккаунт</a>
+      </section>
+
+      <section class="auth-state" data-feedback-auth-error hidden>
+        <p class="auth-message" data-state="error">Авторизация недоступна: сервис не настроен или недоступен. Гостевой
+          режим работает, но отзыв требует входа.</p>
+        <a class="btn btn--secondary auth-submit" href="auth.html">Открыть аккаунт</a>
+      </section>
+
+      <section class="auth-state" data-feedback-form hidden>
+        <form id="feedback-form" class="auth-form" novalidate>
+          <fieldset class="feedback-stars">
+            <legend>Оценка от 1 до 5 звёзд <span aria-hidden="true">*</span></legend>
+            <div class="feedback-stars__row" role="radiogroup" aria-label="Оценка от 1 до 5 звёзд" aria-required="true"
+              id="feedback-stars">
+              <button type="button" role="radio" aria-checked="false" aria-label="1 звезда" data-rating="1">★</button>
+              <button type="button" role="radio" aria-checked="false" aria-label="2 звезды" data-rating="2">★</button>
+              <button type="button" role="radio" aria-checked="false" aria-label="3 звезды" data-rating="3">★</button>
+              <button type="button" role="radio" aria-checked="false" aria-label="4 звезды" data-rating="4">★</button>
+              <button type="button" role="radio" aria-checked="false" aria-label="5 звёзд" data-rating="5">★</button>
+            </div>
+            <p class="feedback-stars__live" id="feedback-stars-live" aria-live="polite"></p>
+            <p class="auth-field-error" id="feedback-rating-error" hidden></p>
+          </fieldset>
+
+          <label for="feedback-comment">Комментарий (необязательно, до 1000 символов)</label>
+          <textarea id="feedback-comment" name="comment" rows="5" maxlength="1000"
+            aria-describedby="feedback-comment-count"></textarea>
+          <p class="auth-field-hint" id="feedback-comment-count"><span id="feedback-comment-used">0</span> / 1000</p>
+          <p class="auth-field-error" id="feedback-comment-error" hidden></p>
+
+          <button type="submit" class="btn btn--primary auth-submit" id="feedback-submit">Отправить отзыв</button>
+          <p class="auth-message" id="feedback-message" role="status" aria-live="polite"></p>
+        </form>
+      </section>
+
+      <section class="auth-state" data-feedback-success hidden>
+        <p class="auth-message">Спасибо! Ваш отзыв сохранён.</p>
+        <p class="auth-message" data-feedback-success-detail hidden></p>
+        <button type="button" class="auth-text-button" id="feedback-edit">Изменить отзыв</button>
+      </section>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>GitLingo · <a href="feedback.html" aria-current="page">Оценить сайт</a></p>
+  </footer>
+</body>
+
+</html>

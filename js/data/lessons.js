@@ -30,7 +30,8 @@ window.GitLingo.data = {
           options: [
             { id: "a", text: "Показать текущий путь", code: "pwd" },
             { id: "b", text: "Показать файлы", code: "ls" },
-            { id: "c", text: "Очистить экран", code: "clear" }
+            { id: "c", text: "Очистить экран", code: "clear" },
+            { id: "d", text: "Перейти в родительскую папку", code: "cd .." }
           ],
           answer: "a",
           explain: "pwd выводит путь к текущей рабочей папке.",
@@ -42,7 +43,8 @@ window.GitLingo.data = {
           options: [
             { id: "a", text: "Перейти в папку", code: "cd" },
             { id: "b", text: "Показать содержимое", code: "ls" },
-            { id: "c", text: "Показать текущий путь", code: "pwd" }
+            { id: "c", text: "Показать текущий путь", code: "pwd" },
+            { id: "d", text: "Перейти в родительскую папку", code: "cd .." }
           ],
           answer: "b",
           explain: "ls выводит содержимое текущего каталога.",
@@ -54,7 +56,8 @@ window.GitLingo.data = {
           options: [
             { id: "a", text: "Перейти на уровень выше", code: "cd .." },
             { id: "b", text: "Очистить терминал", code: "clear" },
-            { id: "c", text: "Показать текущий путь", code: "pwd" }
+            { id: "c", text: "Показать текущий путь", code: "pwd" },
+            { id: "d", text: "Показать содержимое родительской папки", code: "ls .." }
           ],
           answer: "a",
           explain: "Две точки обозначают родительскую папку, а cd меняет каталог.",
@@ -66,7 +69,8 @@ window.GitLingo.data = {
           options: [
             { id: "a", text: "Перейти в папку", code: "cd" },
             { id: "b", text: "Создать файл", code: "touch" },
-            { id: "c", text: "Очистить экран", code: "clear" }
+            { id: "c", text: "Очистить экран", code: "clear" },
+            { id: "d", text: "Показать текущий путь", code: "pwd" }
           ],
           answer: "c",
           explain: "clear очищает видимый экран терминала.",
@@ -142,7 +146,8 @@ window.GitLingo.data = {
           options: [
             { id: "a", text: "Проверить состояние", code: "git status" },
             { id: "b", text: "Показать историю", code: "git log" },
-            { id: "c", text: "Показать различия", code: "git diff" }
+            { id: "c", text: "Показать различия", code: "git diff" },
+            { id: "d", text: "Показать последний коммит", code: "git show HEAD" }
           ],
           answer: "a",
           explain: "git status показывает состояние рабочей папки и индекса.",
@@ -154,7 +159,8 @@ window.GitLingo.data = {
           options: [
             { id: "a", text: "Посмотреть различия", code: "git diff" },
             { id: "b", text: "Посмотреть состояние", code: "git status" },
-            { id: "c", text: "Посмотреть историю", code: "git log" }
+            { id: "c", text: "Посмотреть историю", code: "git log" },
+            { id: "d", text: "Посмотреть последний коммит", code: "git show HEAD" }
           ],
           answer: "a",
           explain: "git diff показывает различия между изменёнными версиями файлов.",
@@ -174,7 +180,8 @@ window.GitLingo.data = {
           options: [
             { id: "a", text: "Показать список веток", code: "git branch" },
             { id: "b", text: "Показать историю коммитов", code: "git log" },
-            { id: "c", text: "Проверить состояние", code: "git status" }
+            { id: "c", text: "Проверить состояние", code: "git status" },
+            { id: "d", text: "Показать последний коммит", code: "git show HEAD" }
           ],
           answer: "b",
           explain: "git log выводит список коммитов в истории.",
@@ -202,9 +209,9 @@ window.GitLingo.data = {
         { title: "Подготовь и сохрани", text: "Сначала добавь файл в индекс, затем создай коммит с коротким сообщением.", code: "git add README.md\ngit commit -m \"Обновить README\"" }
       ],
       tasks: [
-        { type: "choice", question: "Как проверить, какие файлы изменились?", options: [{ id: "a", text: "Проверить состояние", code: "git status" }, { id: "b", text: "Показать список веток", code: "git branch --list" }], answer: "a", explain: "git status показывает изменения и состояние индекса.", hint: "Выбери команду для проверки состояния." },
+        { type: "choice", question: "Как проверить, какие файлы изменились?", options: [{ id: "a", text: "Проверить состояние", code: "git status" }, { id: "b", text: "Показать список веток", code: "git branch --list" }, { id: "c", text: "Посмотреть статистику истории", code: "git log --stat" }, { id: "d", text: "Посмотреть адреса remote", code: "git remote -v" }], answer: "a", explain: "git status показывает изменения и состояние индекса.", hint: "Выбери команду для проверки состояния." },
         { type: "builder", question: "Собери команду для добавления README.md в индекс.", blocks: ["git", "README.md", "add", "commit"], answer: ["git", "add", "README.md"], explain: "git add добавляет файл в индекс.", hint: "Укажи git add и имя файла." },
-        { type: "choice", question: "Какая команда создаёт коммит с сообщением?", options: [{ id: "a", text: "Сохранить снимок изменений", code: "git commit -m \"start\"" }, { id: "b", text: "Показать файлы", code: "git ls-files" }], answer: "a", explain: "git commit -m создаёт коммит с сообщением.", hint: "Для сообщения используется флаг -m." }
+        { type: "choice", question: "Какая команда создаёт коммит с сообщением?", options: [{ id: "a", text: "Сохранить снимок изменений", code: "git commit -m \"start\"" }, { id: "b", text: "Показать файлы", code: "git ls-files" }, { id: "c", text: "Добавить README в индекс", code: "git add README.md" }, { id: "d", text: "Проверить состояние", code: "git status" }], answer: "a", explain: "git commit -m создаёт коммит с сообщением.", hint: "Для сообщения используется флаг -m." }
       ],
       test: [
         { type: "choice", question: "Куда git add помещает подготовленные изменения?", options: [{ id: "a", text: "В индекс Git" }, { id: "b", text: "Сразу на сервер" }], answer: "a", explain: "git add подготавливает изменения в индексе, но не отправляет их на сервер.", hint: "Следующий шаг после индекса — коммит." },
@@ -223,12 +230,12 @@ window.GitLingo.data = {
         { title: "Переключись и объедини", text: "Переключайся на существующую ветку, а после проверки объединяй её в текущую.", code: "git switch main\ngit merge feature" }
       ],
       tasks: [
-        { type: "choice", question: "Как посмотреть список локальных веток?", options: [{ id: "a", text: "Показать ветки", code: "git branch" }, { id: "b", text: "Проверить состояние", code: "git status" }], answer: "a", explain: "git branch без аргументов показывает локальные ветки.", hint: "Используй подкоманду branch." },
+        { type: "choice", question: "Как посмотреть список локальных веток?", options: [{ id: "a", text: "Показать ветки", code: "git branch" }, { id: "b", text: "Проверить состояние", code: "git status" }, { id: "c", text: "Посмотреть историю коммитов", code: "git log --oneline" }, { id: "d", text: "Посмотреть адреса remote", code: "git remote -v" }], answer: "a", explain: "git branch без аргументов показывает локальные ветки.", hint: "Используй подкоманду branch." },
         { type: "builder", question: "Собери команду переключения на ветку feature.", blocks: ["feature", "git", "switch", "merge"], answer: ["git", "switch", "feature"], explain: "git switch переключает рабочую копию на существующую ветку.", hint: "После git switch напиши имя ветки." },
-        { type: "choice", question: "Как объединить ветку feature в текущую?", options: [{ id: "a", text: "Объединить ветку", code: "git merge feature" }, { id: "b", text: "Переименовать файл", code: "git mv" }], answer: "a", explain: "git merge включает изменения указанной ветки в текущую.", hint: "Команда называется merge." }
+        { type: "choice", question: "Как объединить ветку feature в текущую?", options: [{ id: "a", text: "Объединить ветку", code: "git merge feature" }, { id: "b", text: "Переименовать файл", code: "git mv" }, { id: "c", text: "Переключиться на feature", code: "git switch feature" }, { id: "d", text: "Посмотреть историю", code: "git log --oneline" }], answer: "a", explain: "git merge включает изменения указанной ветки в текущую.", hint: "Команда называется merge." }
       ],
       test: [
-        { type: "choice", question: "Как создать и сразу выбрать новую ветку feature?", options: [{ id: "a", text: "Создать и переключиться", code: "git switch -c feature" }, { id: "b", text: "Показать историю", code: "git log" }], answer: "a", explain: "Флаг -c у git switch создаёт новую ветку и переключает на неё.", hint: "Используй git switch с флагом -c." },
+        { type: "choice", question: "Как создать и сразу выбрать новую ветку feature?", options: [{ id: "a", text: "Создать и переключиться", code: "git switch -c feature" }, { id: "b", text: "Показать историю", code: "git log" }, { id: "c", text: "Создать ветку без переключения", code: "git branch feature" }, { id: "d", text: "Переключиться на существующую ветку", code: "git checkout feature" }], answer: "a", explain: "Флаг -c у git switch создаёт новую ветку и переключает на неё.", hint: "Используй git switch с флагом -c." },
         { type: "builder", question: "Собери команду просмотра веток.", blocks: ["branch", "git", "status", "switch"], answer: ["git", "branch"], explain: "git branch выводит локальные ветки.", hint: "Подкоманда branch идёт после git." }
       ]
     },
@@ -244,12 +251,12 @@ window.GitLingo.data = {
         { title: "Синхронизируй ветку", text: "Отправляй свои коммиты командой push, а новые изменения получай командой pull.", code: "git push origin main\ngit pull" }
       ],
       tasks: [
-        { type: "choice", question: "Как посмотреть настроенные удалённые репозитории?", options: [{ id: "a", text: "Посмотреть адреса", code: "git remote -v" }, { id: "b", text: "Посмотреть коммиты", code: "git log" }], answer: "a", explain: "git remote -v показывает имена и адреса удалённых репозиториев.", hint: "Для подробного списка используется -v." },
+        { type: "choice", question: "Как посмотреть настроенные удалённые репозитории?", options: [{ id: "a", text: "Посмотреть адреса", code: "git remote -v" }, { id: "b", text: "Посмотреть коммиты", code: "git log" }, { id: "c", text: "Показать имена remote", code: "git remote" }, { id: "d", text: "Показать локальные и удалённые ветки", code: "git branch -a" }], answer: "a", explain: "git remote -v показывает имена и адреса удалённых репозиториев.", hint: "Для подробного списка используется -v." },
         { type: "builder", question: "Собери команду отправки ветки main на origin.", blocks: ["origin", "git", "main", "push", "pull"], answer: ["git", "push", "origin", "main"], explain: "git push отправляет коммиты выбранной ветки в удалённый репозиторий.", hint: "Сначала git push, затем имя remote и ветки." },
-        { type: "choice", question: "Какая команда копирует удалённый репозиторий на компьютер?", options: [{ id: "a", text: "Клонировать репозиторий", code: "git clone URL" }, { id: "b", text: "Создать коммит", code: "git commit" }], answer: "a", explain: "git clone создаёт локальную копию удалённого репозитория.", hint: "Используй команду clone и адрес репозитория." }
+        { type: "choice", question: "Какая команда копирует удалённый репозиторий на компьютер?", options: [{ id: "a", text: "Клонировать репозиторий", code: "git clone URL" }, { id: "b", text: "Создать коммит", code: "git commit" }, { id: "c", text: "Получить данные без рабочей копии", code: "git fetch URL" }, { id: "d", text: "Добавить адрес remote", code: "git remote add origin URL" }], answer: "a", explain: "git clone создаёт локальную копию удалённого репозитория.", hint: "Используй команду clone и адрес репозитория." }
       ],
       test: [
-        { type: "choice", question: "Как получить новые коммиты с удалённого репозитория и объединить их?", options: [{ id: "a", text: "Получить изменения", code: "git pull" }, { id: "b", text: "Отправить изменения", code: "git push" }], answer: "a", explain: "git pull получает изменения с remote и объединяет их с текущей веткой.", hint: "Это команда для получения изменений." },
+        { type: "choice", question: "Как получить новые коммиты с удалённого репозитория и объединить их?", options: [{ id: "a", text: "Получить изменения", code: "git pull" }, { id: "b", text: "Отправить изменения", code: "git push" }, { id: "c", text: "Получить данные без слияния", code: "git fetch origin" }, { id: "d", text: "Создать локальную копию", code: "git clone URL" }], answer: "a", explain: "git pull получает изменения с remote и объединяет их с текущей веткой.", hint: "Это команда для получения изменений." },
         { type: "builder", question: "Собери команду просмотра адресов remote.", blocks: ["-v", "git", "remote", "push"], answer: ["git", "remote", "-v"], explain: "Флаг -v показывает адреса удалённых репозиториев.", hint: "Сначала git remote, затем -v." }
       ]
     },

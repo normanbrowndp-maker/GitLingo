@@ -299,3 +299,75 @@
     gap: 0.85rem;
   }
 }
+
+/* Форма отзыва */
+.feedback-stars {
+  display: grid;
+  min-width: 0;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.feedback-stars legend {
+  color: var(--text);
+  font-weight: 800;
+  padding: 0;
+}
+
+.feedback-stars__row {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.feedback-stars__row button {
+  width: 48px;
+  height: 48px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text-muted);
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.feedback-stars__row button:hover {
+  border-color: var(--brand);
+}
+
+.feedback-stars__row button:focus-visible {
+  outline: 3px solid var(--brand);
+  outline-offset: 2px;
+}
+
+.feedback-stars__row button.is-selected {
+  border-color: var(--brand);
+  color: var(--brand);
+  background: var(--brand-soft);
+}
+
+.feedback-stars__live {
+  margin: 0;
+  min-height: 1em;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+#feedback-comment {
+  width: 100%;
+  min-width: 0;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  resize: vertical;
+}
+
+#feedback-comment:focus-visible {
+  outline: 3px solid var(--brand);
+  outline-offset: 2px;
+}

@@ -1,4 +1,4 @@
-.icon {
+﻿.icon {
   width: 1.25rem;
   height: 1.25rem;
   flex: 0 0 auto;
@@ -57,76 +57,103 @@
 
 .btn {
   display: inline-flex;
-  min-height: 52px;
+  min-height: 48px;
+  min-width: 44px;
   align-items: center;
   justify-content: center;
-  padding: 14px 24px;
+  padding: 12px 22px;
   border: 2px solid transparent;
   border-radius: var(--radius-md);
-  font-size: 1rem;
+  font-size: 0.95rem;
   font-weight: 800;
   text-align: center;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   line-height: 1.2;
-  transition: transform var(--time-fast), box-shadow var(--time-fast), background-color var(--time-theme);
+  cursor: pointer;
+  transition: transform var(--time-fast), box-shadow var(--time-fast), background-color var(--time-theme), border-color var(--time-theme), color var(--time-theme);
+}
+
+.btn:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
 }
 
 .btn--primary {
   border-color: var(--brand);
   background: var(--brand);
   color: var(--brand-button-text);
-  box-shadow: 0 4px 0 var(--brand-edge);
+  box-shadow: 0 2px 0 var(--brand-edge);
 }
 
 .btn--secondary {
   border-color: var(--border);
   background: var(--card);
   color: var(--text);
-  box-shadow: 0 4px 0 var(--border);
+  box-shadow: 0 2px 0 var(--border);
+}
+
+.btn--practice {
+  border-color: var(--practice-accent);
+  background: var(--practice-accent);
+  color: var(--practice-button-text);
+  box-shadow: 0 2px 0 var(--practice-edge);
 }
 
 .btn--success {
   border-color: var(--success);
   background: var(--success);
   color: var(--success-button-text);
-  box-shadow: 0 4px 0 var(--success-edge);
+  box-shadow: 0 2px 0 var(--success-edge);
 }
 
 .btn--danger {
   border-color: var(--error);
   background: var(--error);
   color: var(--error-button-text);
-  box-shadow: 0 4px 0 var(--error-edge);
+  box-shadow: 0 2px 0 var(--error-edge);
 }
 
 .btn:hover:not(:disabled):not([aria-disabled="true"]) {
-  transform: translateY(-2px);
+  transform: translateY(-1px);
 }
 
 .btn--primary:hover:not(:disabled):not([aria-disabled="true"]) {
-  box-shadow: 0 6px 0 var(--brand-edge);
+  box-shadow: 0 3px 0 var(--brand-edge);
 }
 
 .btn--secondary:hover:not(:disabled):not([aria-disabled="true"]) {
-  box-shadow: 0 6px 0 var(--border);
+  border-color: var(--control-border);
+  box-shadow: 0 3px 0 var(--control-border);
+}
+
+.btn--practice:hover:not(:disabled):not([aria-disabled="true"]) {
+  box-shadow: 0 3px 0 var(--practice-edge);
 }
 
 .btn--success:hover:not(:disabled):not([aria-disabled="true"]) {
-  box-shadow: 0 6px 0 var(--success-edge);
+  box-shadow: 0 3px 0 var(--success-edge);
 }
 
 .btn--danger:hover:not(:disabled):not([aria-disabled="true"]) {
-  box-shadow: 0 6px 0 var(--error-edge);
+  box-shadow: 0 3px 0 var(--error-edge);
 }
 
 .btn:active:not(:disabled):not([aria-disabled="true"]) {
-  transform: translateY(4px);
+  transform: translateY(1px);
   box-shadow: 0 0 0 var(--border);
 }
 
 .btn--primary:active:not(:disabled):not([aria-disabled="true"]) {
   box-shadow: 0 0 0 var(--brand-edge);
+}
+
+.btn--secondary:active:not(:disabled):not([aria-disabled="true"]) {
+  box-shadow: 0 0 0 var(--border);
+}
+
+.btn--practice:active:not(:disabled):not([aria-disabled="true"]) {
+  box-shadow: 0 0 0 var(--practice-edge);
 }
 
 .btn--success:active:not(:disabled):not([aria-disabled="true"]) {
@@ -146,6 +173,7 @@ button:disabled {
   color: var(--text-disabled);
   box-shadow: none;
   cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .card,
@@ -167,6 +195,13 @@ button:disabled {
   border: 0;
   border-radius: var(--radius-pill);
   background: var(--border);
+}
+
+.results-threshold {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
 }
 
 #lesson-progress::-webkit-progress-bar {
@@ -304,8 +339,9 @@ button:disabled {
 }
 
 .is-selected {
-  border-color: var(--border) !important;
+  border-color: var(--brand) !important;
   background-color: var(--brand-soft) !important;
+  color: var(--text) !important;
 }
 
 .is-correct,
@@ -317,6 +353,7 @@ button:disabled {
 .is-correct {
   border-color: var(--success) !important;
   background-color: var(--success-bg) !important;
+  color: var(--text) !important;
 }
 
 .state-icon {
@@ -333,6 +370,7 @@ button:disabled {
 .is-wrong {
   border-color: var(--error) !important;
   background-color: var(--error-bg) !important;
+  color: var(--text) !important;
 }
 
 .is-wrong .state-icon {
@@ -342,6 +380,7 @@ button:disabled {
 .is-disabled {
   pointer-events: none;
   opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .is-matched {

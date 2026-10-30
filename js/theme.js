@@ -32,7 +32,8 @@ function setTheme(theme, animate = false) {
   }
 }
 
-const initialTheme = readStoredTheme() || (themePreference.matches ? "dark" : "light");
+const paramTheme = new URLSearchParams(window.location.search).get("theme");
+const initialTheme = (paramTheme === "dark" || paramTheme === "light") ? paramTheme : (readStoredTheme() || (themePreference.matches ? "dark" : "light"));
 setTheme(initialTheme);
 
 if (themeToggle) {

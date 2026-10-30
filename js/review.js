@@ -222,9 +222,10 @@
       });
       button.setAttribute("aria-label", `Вариант ${position + 1}: ${option.keys.join(" + ")}`);
     } else {
-      button.append(el("span", option.text));
+      const visibleText = task.type !== "choice" || !option.code ? option.text : "";
+      if (visibleText) button.append(el("span", visibleText));
       if (option.code) button.append(el("code", option.code));
-      button.setAttribute("aria-label", `Вариант ${position + 1}: ${option.text}${option.code ? `, ${option.code}` : ""}`);
+      button.setAttribute("aria-label", `Вариант ${position + 1}: ${visibleText}${option.code ? `${visibleText ? ", " : ""}${option.code}` : ""}`);
     }
     button.append(el("kbd", String(position + 1), "choice-shortcut"));
     button.addEventListener("click", () => {

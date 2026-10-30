@@ -46,24 +46,33 @@
   title.textContent = interrupted
     ? "Попытка прервана: закончились сердца"
     : (isBonus ? "Бонус пройден!" : (test ? (passed ? "Тест сдан" : "Тест не сдан") : "Практика завершена"));
-  document.querySelector("#stat-score").textContent = result.lesson.total
+  const practiceRan = result.lesson.total > 0;
+  document.querySelector("#stat-score").textContent = practiceRan
     ? `${result.lesson.correct} из ${result.lesson.total}`
     : "Не выполнялась";
   document.querySelector("#stat-errors").textContent = String(Math.max(0,
-    (Number(result.lesson.errors) || 0) + (Number(test && test.wrong) || 0)));
+    (practiceRan ? (Number(result.lesson.errors) || 0) : 0) + (Number(test && test.wrong) || 0)));
   document.querySelector("#stat-hearts").textContent = storageWritable ? String(saved.hearts) : "—";
   testStatCard.hidden = !test;
   if (test) {
     const unanswered = Math.max(0, test.total - (Number(test.answered) || 0));
     const required = Math.ceil(test.total * data.config.PASS_RATIO);
-    document.querySelector("#stat-test").textContent = `Правильных ${test.correct} из ${test.total}; ошибок ${test.wrong || 0}; не отвечено ${unanswered}; порог ${Math.round(data.config.PASS_RATIO * 100)}% (${required} правильных).`;
+    document.querySelector("#stat-test").textContent = `Правильных ${test.correct} из ${test.total}`;
+    const thresholdNote = document.querySelector("#test-threshold-note");
+    thresholdNote.textContent = `Порог: ${Math.round(data.config.PASS_RATIO * 100)}% · нужно ${required} из ${test.total}`
+      + (unanswered ? ` · не отвечено ${unanswered}` : "") + (test.wrong ? ` · ошибок ${test.wrong}` : "");
+    thresholdNote.hidden = false;
   }
 
-  const total = result.lesson.total + (test?.total || 0);
-  const correct = result.lesson.correct + (test?.correct || 0);
-  const accuracy = Number.isFinite(result.accuracy)
-    ? result.accuracy
-    : (total ? Math.round((correct / total) * 100) : 0);
+  const testOnly = test && !practiceRan;
+  const total = practiceRan ? result.lesson.total + (test?.total || 0) : (test?.total || 0);
+  const correct = practiceRan ? result.lesson.correct + (test?.correct || 0) : (test?.correct || 0);
+  // Для отдельного теста точность считается только по тесту: непройденная практика не входит в расчёт.
+  const accuracy = testOnly
+    ? Math.round((test.correct / Math.max(1, test.total)) * 100)
+    : (practiceRan && Number.isFinite(result.accuracy)
+      ? result.accuracy
+      : (total ? Math.round((correct / total) * 100) : 0));
   const elapsed = Math.max(0, Math.floor(Number(result.totalTimeSec) || 0));
   const minutes = String(Math.floor(elapsed / 60)).padStart(2, "0");
   const seconds = String(elapsed % 60).padStart(2, "0");
