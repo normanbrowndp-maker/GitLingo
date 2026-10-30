@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="ru">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Конструктор курсов — GitLingo</title>
+  <meta name="application-name" content="GitLingo">
+  <script>
+    try {
+      const storedTheme = localStorage.getItem("mega-theme");
+      const savedTheme = storedTheme === "light" || storedTheme === "dark" ? storedTheme : null;
+      document.documentElement.dataset.theme = savedTheme || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    } catch {
+      document.documentElement.dataset.theme = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    }
+  </script>
+  <link rel="stylesheet" href="css/tokens.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/lesson.css">
+  <link rel="stylesheet" href="css/pages.css">
+  <link rel="stylesheet" href="css/custom-course.css">
+  <script src="js/storage.js" defer></script>
+  <script src="js/ui.js" defer></script>
+  <script src="js/theme.js" defer></script>
+  <script src="js/custom-course-model.js" defer></script>
+  <script src="assets/vendor/supabase-js-2.118.0.js" defer></script>
+  <script src="js/supabase-config.js" defer></script>
+  <script src="js/auth.js" defer></script>
+  <script src="js/nav.js" defer></script>
+  <script src="js/custom-course-editor.js" defer></script>
+</head>
+
+<body class="page-custom-editor">
+  <header class="site-header">
+    <a class="site-header__logo" href="index.html" data-home-link><span>Git</span><span
+        class="site-header__accent">Lingo</span></a>
+    <nav class="site-header__nav" aria-label="Основная навигация">
+      <a href="learn.html" data-nav-link>Учиться</a>
+      <a href="courses.html" data-nav-link>Курсы</a>
+      <a href="auth.html" data-nav-link data-auth-nav-link aria-busy="true" hidden><span
+          class="visually-hidden">Проверка состояния аккаунта</span></a>
+    </nav>
+    <div class="site-header__status">
+      <button type="button" id="theme-toggle" class="theme-toggle" aria-label="Включить тёмную тему"
+        aria-pressed="false">
+        <svg class="theme-toggle__icon theme-toggle__icon--moon" viewBox="0 0 24 24" aria-hidden="true"
+          focusable="false">
+          <use href="#icon-moon"></use>
+        </svg>
+        <svg class="theme-toggle__icon theme-toggle__icon--sun" viewBox="0 0 24 24" aria-hidden="true"
+          focusable="false">
+          <use href="#icon-sun"></use>
+        </svg>
+        <span class="visually-hidden">Переключить тему</span>
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <section class="cc-editor" aria-labelledby="editor-title">
+      <h1 id="editor-title">Конструктор курса</h1>
+      <p id="editor-status" class="cc-editor__status" hidden></p>
+
+      <form class="cc-form" id="course-meta-form">
+        <div class="cc-field">
+          <label for="course-title">Название курса</label>
+          <input id="course-title" name="title" type="text" maxlength="120" required autocomplete="off">
+        </div>
+        <div class="cc-field">
+          <label for="course-description">Описание</label>
+          <textarea id="course-description" name="description" rows="2" maxlength="500"></textarea>
+        </div>
+      </form>
+
+      <div class="cc-editor__actions">
+        <button type="button" class="btn btn--primary" id="save-draft">Сохранить черновик</button>
+        <button type="button" class="btn btn--secondary" id="preview-course">Предпросмотр</button>
+        <button type="button" class="btn btn--secondary" id="publish-course">Опубликовать</button>
+      </div>
+      <p class="cc-editor__hint">Публикация проверяет структуру на сервере. После публикации правки черновика не меняют
+        опубликованную версию до повторной публикации.</p>
+
+      <section class="cc-lessons" id="lesson-list" aria-label="Уроки курса"></section>
+
+      <button type="button" class="btn btn--secondary" id="add-lesson">Добавить урок</button>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>GitLingo · <a href="feedback.html">Оценить сайт</a></p>
+  </footer>
+</body>
+
+</html>

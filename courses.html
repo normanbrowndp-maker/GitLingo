@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="ru">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Пользовательские курсы — GitLingo</title>
+  <meta name="application-name" content="GitLingo">
+  <script>
+    try {
+      const storedTheme = localStorage.getItem("mega-theme");
+      const savedTheme = storedTheme === "light" || storedTheme === "dark" ? storedTheme : null;
+      document.documentElement.dataset.theme = savedTheme || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    } catch {
+      document.documentElement.dataset.theme = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    }
+  </script>
+  <link rel="stylesheet" href="css/tokens.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/lesson.css">
+  <link rel="stylesheet" href="css/pages.css">
+  <link rel="stylesheet" href="css/custom-course.css">
+  <script src="js/storage.js" defer></script>
+  <script src="js/ui.js" defer></script>
+  <script src="js/theme.js" defer></script>
+  <script src="js/custom-course-model.js" defer></script>
+  <script src="assets/vendor/supabase-js-2.118.0.js" defer></script>
+  <script src="js/supabase-config.js" defer></script>
+  <script src="js/auth.js" defer></script>
+  <script src="js/nav.js" defer></script>
+  <script src="js/custom-course-catalog.js" defer></script>
+</head>
+
+<body class="page-custom-catalog">
+  <header class="site-header">
+    <a class="site-header__logo" href="index.html" data-home-link><span>Git</span><span
+        class="site-header__accent">Lingo</span></a>
+    <nav class="site-header__nav" aria-label="Основная навигация">
+      <a href="learn.html" data-nav-link>Учиться</a>
+      <a href="courses.html" data-nav-link>Курсы</a>
+      <a href="auth.html" data-nav-link data-auth-nav-link aria-busy="true" hidden><span
+          class="visually-hidden">Проверка состояния аккаунта</span></a>
+    </nav>
+    <div class="site-header__status">
+      <button type="button" id="theme-toggle" class="theme-toggle" aria-label="Включить тёмную тему"
+        aria-pressed="false">
+        <svg class="theme-toggle__icon theme-toggle__icon--moon" viewBox="0 0 24 24" aria-hidden="true"
+          focusable="false">
+          <use href="#icon-moon"></use>
+        </svg>
+        <svg class="theme-toggle__icon theme-toggle__icon--sun" viewBox="0 0 24 24" aria-hidden="true"
+          focusable="false">
+          <use href="#icon-sun"></use>
+        </svg>
+        <span class="visually-hidden">Переключить тему</span>
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <section class="cc-catalog" aria-labelledby="catalog-title">
+      <h1 id="catalog-title">Пользовательские курсы</h1>
+      <p id="catalog-status" class="cc-editor__status" hidden></p>
+
+      <section aria-labelledby="catalog-mine-title">
+        <h2 id="catalog-mine-title">Мои курсы</h2>
+        <ul class="cc-course-list" id="mine-list"></ul>
+        <a class="btn btn--primary" href="course-editor.html" id="create-course">Создать курс</a>
+      </section>
+
+      <section aria-labelledby="catalog-published-title">
+        <h2 id="catalog-published-title">Опубликованные курсы</h2>
+        <ul class="cc-course-list" id="published-list"></ul>
+      </section>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>GitLingo · <a href="feedback.html">Оценить сайт</a></p>
+  </footer>
+</body>
+
+</html>

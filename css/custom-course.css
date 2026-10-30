@@ -1,0 +1,235 @@
+/* Стили минимального конструктора курсов. Использует токены существующей темы. */
+
+.cc-editor__status,
+.cc-editor__hint {
+  margin: 0.5rem 0;
+  color: var(--text-muted, inherit);
+}
+
+.cc-editor__hint {
+  font-size: 0.875rem;
+}
+
+.cc-editor__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 1rem 0;
+}
+
+.cc-lessons {
+  display: grid;
+  gap: 1rem;
+  margin: 1rem 0;
+}
+
+.cc-lesson,
+.cc-question {
+  border: 1px solid var(--border, currentColor);
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  background: var(--card, transparent);
+}
+
+.cc-lesson.is-drag-over,
+.cc-question.is-drag-over {
+  outline: 2px dashed var(--brand, currentColor);
+  outline-offset: 2px;
+}
+
+.cc-lesson.is-dragging,
+.cc-question.is-dragging {
+  opacity: 0.5;
+}
+
+.cc-lesson__header,
+.cc-question__header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.cc-lesson__header h2,
+.cc-question__header h3 {
+  margin: 0;
+  flex: 1;
+}
+
+.cc-drag-handle {
+  cursor: grab;
+  user-select: none;
+  color: var(--text-muted, inherit);
+}
+
+.cc-block-controls {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.cc-move-btn,
+.cc-remove-btn {
+  padding: 0.25rem 0.5rem;
+  min-width: auto;
+}
+
+.cc-question-list {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0.75rem 0;
+}
+
+.cc-field {
+  display: grid;
+  gap: 0.25rem;
+  margin: 0.5rem 0;
+}
+
+.cc-field label {
+  font-size: 0.875rem;
+  color: var(--text-muted, inherit);
+}
+
+.cc-field input,
+.cc-field textarea,
+.cc-transition-row select {
+  font: inherit;
+  color: inherit;
+  background: var(--bg, transparent);
+  border: 1px solid var(--border, currentColor);
+  border-radius: 8px;
+  padding: 0.4rem 0.6rem;
+}
+
+.cc-options {
+  border: 1px solid var(--border, currentColor);
+  border-radius: 8px;
+  padding: 0.5rem;
+  margin: 0.5rem 0;
+}
+
+.cc-option-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.35rem 0;
+}
+
+.cc-option-row input[type="text"] {
+  flex: 1;
+  font: inherit;
+  color: inherit;
+  background: var(--bg, transparent);
+  border: 1px solid var(--border, currentColor);
+  border-radius: 8px;
+  padding: 0.35rem 0.5rem;
+}
+
+.cc-transitions {
+  border: 1px solid var(--border, currentColor);
+  border-radius: 8px;
+  padding: 0.5rem;
+  margin: 0.5rem 0;
+}
+
+.cc-transition-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.35rem 0;
+}
+
+.cc-transition-row label {
+  min-width: 14rem;
+}
+
+/* Каталог */
+.cc-course-list {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+  margin: 0.5rem 0 1rem;
+}
+
+.cc-course-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.cc-course-item--split {
+  justify-content: space-between;
+}
+
+.cc-course-link {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0;
+  color: inherit;
+  text-decoration: none;
+}
+
+.cc-course-link:hover strong {
+  text-decoration: underline;
+}
+
+.cc-course-status {
+  font-size: 0.8rem;
+  color: var(--text-muted, inherit);
+  border: 1px solid var(--border, currentColor);
+  border-radius: 999px;
+  padding: 0.05rem 0.5rem;
+}
+
+/* Прохождение */
+.cc-run__description {
+  color: var(--text-muted, inherit);
+}
+
+.cc-run__content {
+  margin-top: 1rem;
+  display: grid;
+  gap: 1rem;
+}
+
+.cc-theory__title {
+  margin: 1rem 0 0.25rem;
+}
+
+.cc-theory__text {
+  white-space: pre-wrap;
+}
+
+.cc-question-run__prompt {
+  font-weight: 600;
+}
+
+.cc-question-run__options {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.cc-answer-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px solid var(--border, currentColor);
+  border-radius: 10px;
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+}
+
+.cc-answer-option.is-locked {
+  cursor: default;
+}
+
+.cc-question-run__actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.cc-question-run__feedback {
+  border-left: 3px solid var(--brand, currentColor);
+  padding-left: 0.75rem;
+}
